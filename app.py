@@ -603,11 +603,17 @@ def admin_dashboard():
     total_users = User.query.count()
     recent_orders = Order.query.order_by(Order.created_at.desc()).limit(5).all()
     
+    # Получаем контент для редактирования
+    important_info = SiteContent.query.filter_by(key='important_info').first()
+    privacy_policy = SiteContent.query.filter_by(key='privacy_policy').first()
+    
     return render_template('admin/dashboard.html',
                          total_orders=total_orders,
                          pending_orders=pending_orders,
                          total_users=total_users,
-                         recent_orders=recent_orders)
+                         recent_orders=recent_orders,
+                         important_info=important_info.value if important_info else '',
+                         privacy_policy=privacy_policy.value if privacy_policy else '')
 
 @app.route('/admin/orders')
 @login_required
@@ -676,7 +682,7 @@ def admin_lotteries():
     if not current_user.is_admin:
         abort(403)
     
-    lotteries = Lottery.query.order_by(Lottery.created_at.desc()).all()
+    lotteries = Lottery.query.order_by(Lottery.start_date.desc()).all()
     return render_template('admin/lotteries.html', lotteries=lotteries, now=datetime.now())
 
 @app.route('/admin/review/<int:review_id>/approve', methods=['POST'])

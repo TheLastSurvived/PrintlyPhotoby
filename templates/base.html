@@ -41,7 +41,10 @@
                                 <li><a class="dropdown-item" href="{{ url_for('profile') }}"><i class="bi bi-box"></i> Мои заказы</a></li>
                                 {% if current_user.is_admin %}
                                     <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="{{ url_for('admin_dashboard') }}"><i class="bi bi-gear"></i> Админ-панель</a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('admin_dashboard') }}"><i class="bi bi-speedometer2"></i> Дашборд</a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('admin_orders') }}"><i class="bi bi-truck"></i> Заказы</a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('admin_reviews') }}"><i class="bi bi-star"></i> Отзывы</a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('admin_lotteries') }}"><i class="bi bi-gift"></i> Розыгрыши</a></li>
                                 {% endif %}
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right"></i> Выйти</a></li>

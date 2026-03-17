@@ -7,6 +7,7 @@
     <div class="container">
         <h2 class="section-title text-center">Админ-панель</h2>
         
+        <!-- Статистика -->
         <div class="row mb-4">
             <div class="col-md-3">
                 <div class="card text-center">
@@ -36,6 +37,31 @@
                 <div class="card text-center">
                     <div class="card-body">
                         <a href="{{ url_for('admin_orders') }}" class="btn" style="background-color: var(--pink); color: white;">Все заказы</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Навигация по разделам -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title mb-3" style="color: var(--pink);">Управление</h5>
+                        <div class="d-flex flex-wrap gap-2">
+                            <a href="{{ url_for('admin_orders') }}" class="btn" style="background-color: var(--cream);">
+                                <i class="bi bi-truck"></i> Заказы
+                            </a>
+                            <a href="{{ url_for('admin_reviews') }}" class="btn" style="background-color: var(--cream);">
+                                <i class="bi bi-star"></i> Отзывы
+                            </a>
+                            <a href="{{ url_for('admin_lotteries') }}" class="btn" style="background-color: var(--cream);">
+                                <i class="bi bi-gift"></i> Розыгрыши
+                            </a>
+                            <button type="button" class="btn" style="background-color: var(--cream);" data-bs-toggle="modal" data-bs-target="#editContentModal">
+                                <i class="bi bi-pencil"></i> Редактировать контент
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -88,4 +114,31 @@
         </div>
     </div>
 </section>
+
+<!-- Модальное окно для редактирования контента -->
+<div class="modal fade" id="editContentModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Редактирование контента</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form action="{{ url_for('update_site_content', key='important_info') }}" method="POST" class="mb-4">
+                    <h6 class="mb-2">Важная информация на главной</h6>
+                    <textarea class="form-control mb-2" name="value" rows="5">{{ important_info }}</textarea>
+                    <button type="submit" class="btn" style="background-color: var(--pink); color: white;">Сохранить</button>
+                </form>
+                
+                <hr>
+                
+                <form action="{{ url_for('update_site_content', key='privacy_policy') }}" method="POST">
+                    <h6 class="mb-2">Политика конфиденциальности</h6>
+                    <textarea class="form-control mb-2" name="value" rows="5">{{ privacy_policy }}</textarea>
+                    <button type="submit" class="btn" style="background-color: var(--pink); color: white;">Сохранить</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
