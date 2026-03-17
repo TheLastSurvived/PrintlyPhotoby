@@ -1,0 +1,811 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Hero секция -->
+<section class="hero-section">
+    <div class="container text-center">
+        <h1 class="hero-title display-5 fw-bold mb-4">
+            Печать фотографий <br>с душой и вниманием к деталям
+        </h1>
+        <p class="lead mb-5">
+            Только печать на заказ. Отправка Белпочтой и Европочтой
+        </p>
+        {% if current_user.is_authenticated %}
+            <a href="#order" class="hero-btn btn">Оформить заказ</a>
+        {% else %}
+            <a href="{{ url_for('register') }}" class="hero-btn btn">Зарегистрироваться и заказать</a>
+        {% endif %}
+    </div>
+</section>
+
+<!-- Услуги -->
+<section id="services" class="py-5 section-white">
+    <div class="container">
+        <h2 class="section-title text-center">Наши услуги</h2>
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <div class="service-card card text-center">
+                    <div class="card-img-placeholder">📸</div>
+                    <div class="card-body">
+                        <h5 class="card-title">Печать фотографий на заказ</h5>
+                        <p class="card-text">
+                            Работаем только по предварительным заказам. 
+                            Отправляем по всей Беларуси через Белпочту и Европочту.
+                        </p>
+                        <p class="card-text fw-bold">
+                            Глянцевая бумага 230 г/м²
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Примеры форматов -->
+<section id="format-examples" class="py-5 section-cream">
+    <div class="container">
+        <h2 class="section-title text-center">Примеры форматов</h2>
+        <div class="row">
+            <div class="col-md-3 col-6 mb-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <div style="width: 100%; height: 150px; background: linear-gradient(45deg, #f5e79c, #fb9bb7); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-size: 3rem;">
+                            10x15
+                        </div>
+                        <p class="mt-2">10 x 15 см</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-6 mb-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <div style="width: 100%; height: 150px; background: linear-gradient(45deg, #f5e79c, #fb9bb7); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-size: 3rem;">
+                            10x10
+                        </div>
+                        <p class="mt-2">10 x 10 см</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-6 mb-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <div style="width: 100%; height: 150px; background: linear-gradient(45deg, #f5e79c, #fb9bb7); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-size: 3rem;">
+                            Polaroid
+                        </div>
+                        <p class="mt-2">10 x 12 см</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-6 mb-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <div style="width: 100%; height: 150px; background: linear-gradient(45deg, #f5e79c, #fb9bb7); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-size: 3rem;">
+                            Instax
+                        </div>
+                        <p class="mt-2">7 x 10 см</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <p class="text-center text-muted">* Точные размеры могут незначительно отличаться</p>
+    </div>
+</section>
+
+<!-- Цены -->
+<section id="price" class="py-5 section-white">
+    <div class="container">
+        <h2 class="section-title text-center">Цены на печать</h2>
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <div class="price-table-card card">
+                    <div class="card-body p-0">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Формат</th>
+                                    <th>Цена за шт</th>
+                                    <th>Минимальный заказ</th>
+                                    <th>Стоимость min заказа</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>10 x 15</td>
+                                    <td>0.35 BYN</td>
+                                    <td>26 шт</td>
+                                    <td>9.10 BYN</td>
+                                </tr>
+                                <tr>
+                                    <td>10 x 10</td>
+                                    <td>0.40 BYN</td>
+                                    <td>50 шт</td>
+                                    <td>20.00 BYN</td>
+                                </tr>
+                                <tr>
+                                    <td>9 x 13</td>
+                                    <td>0.40 BYN</td>
+                                    <td>26 шт</td>
+                                    <td>10.40 BYN</td>
+                                </tr>
+                                <tr>
+                                    <td>Polaroid 10 x 12</td>
+                                    <td>0.25 BYN</td>
+                                    <td>40 шт</td>
+                                    <td>10.00 BYN</td>
+                                </tr>
+                                <tr>
+                                    <td>Fuji / Instax 7 x 10</td>
+                                    <td>0.25 BYN</td>
+                                    <td>40 шт</td>
+                                    <td>10.00 BYN</td>
+                                </tr>
+                                <tr>
+                                    <td>MiniPolaroid 7 x 10</td>
+                                    <td>0.25 BYN</td>
+                                    <td>50 шт</td>
+                                    <td>12.50 BYN</td>
+                                </tr>
+                                <tr>
+                                    <td>Фотополоска 5 x 15</td>
+                                    <td>0.25 BYN</td>
+                                    <td>40 шт</td>
+                                    <td>10.00 BYN</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="mt-4 p-3 bg-white rounded-3 shadow-sm">
+                    <p class="mb-2 fw-bold">📌 Важная информация:</p>
+                    <div id="important-info-content">
+                        {% if important_info %}
+                            {{ important_info|safe }}
+                        {% else %}
+                            <ul class="list-unstyled mb-0">
+                                <li class="mb-2">✅ <strong>Минимальный заказ:</strong> 10 рублей</li>
+                                <li class="mb-2">✅ <strong>Бумага:</strong> только глянцевая 230 г/м²</li>
+                                <li class="mb-2">✅ <strong>Скидка:</strong> от 200 штук -5% на все форматы</li>
+                                <li class="mb-2">✅ Любой другой формат до 10x15 — 0.40 BYN</li>
+                                <li class="mb-2">✅ Любой формат до 7x10 — 0.25 BYN</li>
+                            </ul>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <p class="text-center text-muted mt-3">* Возможна печать других форматов по запросу</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Активный розыгрыш -->
+{% if active_lottery %}
+<section class="py-4" style="background: linear-gradient(135deg, var(--pink), var(--cream));">
+    <div class="container text-center text-white">
+        <h3 class="mb-3">🎁 Розыгрыш: {{ active_lottery.title }}</h3>
+        <p>{{ active_lottery.description }}</p>
+        <p class="fw-bold">Приз: {{ active_lottery.prize }}</p>
+        <p>До окончания: {{ active_lottery.end_date.strftime('%d.%m.%Y') }}</p>
+        {% if current_user.is_authenticated %}
+            <form action="{{ url_for('participate_lottery', lottery_id=active_lottery.id) }}" method="POST" style="display: inline;">
+                <button type="submit" class="btn btn-light">Участвовать</button>
+            </form>
+        {% else %}
+            <a href="{{ url_for('login') }}" class="btn btn-light">Войдите для участия</a>
+        {% endif %}
+    </div>
+</section>
+{% endif %}
+
+<!-- Форма заказа -->
+<section id="order" class="py-5 section-white">
+    <div class="container">
+        <h2 class="section-title text-center">Форма заказа</h2>
+        {% if current_user.is_authenticated %}
+            <div class="row justify-content-center">
+                <div class="col-md-10 col-lg-8">
+                    <div class="form-card card p-4">
+                        <form id="orderForm" action="{{ url_for('create_order') }}" method="POST">
+                            <!-- Личные данные -->
+                            <h5 class="mb-3" style="color: var(--pink);">Личные данные</h5>
+                            <div class="mb-3">
+                                <label class="form-label">ФИО получателя *</label>
+                                <input type="text" class="form-control" name="recipient_name" 
+                                       value="{{ current_user.full_name or '' }}" placeholder="Иванов Иван Иванович" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Номер телефона (Viber/Telegram) *</label>
+                                <input type="tel" class="form-control" name="phone" 
+                                       value="{{ current_user.phone }}" placeholder="+375 29 123-45-67" required>
+                            </div>
+
+                            <!-- Способ доставки -->
+                            <h5 class="mb-3 mt-4" style="color: var(--pink);">Способ доставки</h5>
+                            <div class="mb-4">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="radio" name="delivery_method" id="belpost" value="belpost" checked>
+                                    <label class="form-check-label fw-bold" for="belpost">
+                                        Белпочта
+                                    </label>
+                                </div>
+                                <div id="belpost-fields" class="ms-4 mb-3">
+                                    <div class="mb-2">
+                                        <label class="form-label small">Почтовый индекс *</label>
+                                        <input type="text" class="form-control form-control-sm" name="postal_index" placeholder="220000">
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label small">Адрес (область, город, улица, дом) *</label>
+                                        <input type="text" class="form-control form-control-sm" name="address" placeholder="г. Минск, ул. Ленина, д. 10">
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label small">Квартира</label>
+                                        <input type="text" class="form-control form-control-sm" name="apartment" placeholder="кв. 25">
+                                    </div>
+                                </div>
+
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="radio" name="delivery_method" id="europost" value="europost">
+                                    <label class="form-check-label fw-bold" for="europost">
+                                        Европочта
+                                    </label>
+                                </div>
+                                <div id="europost-fields" class="ms-4 mb-3" style="display: none;">
+                                    <div class="mb-2">
+                                        <label class="form-label small">Номер отделения Европочты *</label>
+                                        <input type="text" class="form-control form-control-sm" name="office_number" placeholder="Например: 123">
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label small">Город *</label>
+                                        <input type="text" class="form-control form-control-sm" name="city" placeholder="г. Минск">
+                                    </div>
+                                    <div class="form-text small">
+                                        ИЛИ укажите полный адрес для курьерской доставки:
+                                    </div>
+                                    <div class="mb-2 mt-2">
+                                        <label class="form-label small">Адрес (улица, дом, квартира)</label>
+                                        <input type="text" class="form-control form-control-sm" name="delivery_address" placeholder="ул. Ленина, д. 10, кв. 25">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Данные заказа с множественным выбором -->
+                            <h5 class="mb-3" style="color: var(--pink);">Данные заказа</h5>
+                            
+                            <div id="order-items">
+                                <div class="order-item mb-4 p-3 border rounded">
+                                    <div class="row">
+                                        <div class="col-md-5 mb-2">
+                                            <label class="form-label">Формат *</label>
+                                            <select class="form-select format-select" name="format[]" required>
+                                                <option value="" disabled selected>— выберите формат —</option>
+                                                <option value="10x15">10x15 (0.35 BYN/шт, мин. 26 шт)</option>
+                                                <option value="10x10">10x10 (0.40 BYN/шт, мин. 50 шт)</option>
+                                                <option value="9x13">9x13 (0.40 BYN/шт, мин. 26 шт)</option>
+                                                <option value="polaroid-10x12">Polaroid 10x12 (0.25 BYN/шт, мин. 40 шт)</option>
+                                                <option value="fuji-7x10">Fuji/Instax 7x10 (0.25 BYN/шт, мин. 40 шт)</option>
+                                                <option value="minipolaroid-7x10">MiniPolaroid 7x10 (0.25 BYN/шт, мин. 50 шт)</option>
+                                                <option value="5x15">Фотополоска 5x15 (0.25 BYN/шт, мин. 40 шт)</option>
+                                                <option value="other до 10x15">Другой формат (до 10x15 - 0.40 BYN)</option>
+                                                <option value="other до 7x10">Другой формат (до 7x10 - 0.25 BYN)</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3 mb-2">
+                                            <label class="form-label">Количество *</label>
+                                            <input type="number" class="form-control quantity-input" name="quantity[]" min="1" required>
+                                        </div>
+                                        <div class="col-md-2 mb-2">
+                                            <label class="form-label">Сумма</label>
+                                            <input type="text" class="form-control item-subtotal" readonly value="0.00 BYN">
+                                        </div>
+                                        <div class="col-md-2 mb-2 d-flex align-items-end">
+                                            <button type="button" class="btn btn-outline-danger remove-item" style="display: none;">Удалить</button>
+                                        </div>
+                                    </div>
+                                    <div class="mt-2">
+                                        <button type="button" class="btn btn-sm upload-photos-btn" style="background-color: var(--cream);" data-format-index="0">
+                                            <i class="bi bi-cloud-upload"></i> Загрузить фото для этого формата
+                                        </button>
+                                        <span class="text-muted small ms-2 photo-count" id="photo-count-0">0 фото</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <button type="button" id="add-format-btn" class="btn" style="background-color: var(--cream); color: #4a4a4a;">
+                                    <i class="bi bi-plus-circle"></i> Добавить еще формат
+                                </button>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label">Дополнительные пожелания</label>
+                                <textarea class="form-control" name="notes" rows="3" placeholder="Укажите:&#10;- Нужна ли обрезка/ретушь&#10;- Особые пожелания по упаковке&#10;- Дополнительные контакты для связи"></textarea>
+                            </div>
+
+                            <!-- Итоговая сумма -->
+                            <div class="alert" style="background-color: var(--cream-light); border-left: 4px solid var(--pink);">
+                                <p class="mb-1"><strong>Итого:</strong> <span id="total-amount">0.00</span> BYN</p>
+                                <p class="mb-0 small">Минимальный заказ — 10 рублей. При заказе от 200 штук скидка 5%.</p>
+                            </div>
+
+                            <!-- Согласия -->
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="privacy_consent" id="privacyConsent" required>
+                                    <label class="form-check-label" for="privacyConsent">
+                                        Я согласен с <a href="#" data-bs-toggle="modal" data-bs-target="#privacyModal">политикой конфиденциальности</a> *
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="sms_consent" id="smsConsent">
+                                    <label class="form-check-label" for="smsConsent">
+                                        Согласен на получение SMS-уведомлений о статусе заказа
+                                    </label>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn-submit btn w-100 mt-3">
+                                Оформить заказ
+                            </button>
+                            <p class="text-muted small text-center mt-3">
+                                * — обязательные поля. Вы сможете отменить или отредактировать заказ в течение 30 минут.
+                            </p>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <div class="text-center">
+                <p class="lead">Для оформления заказа необходимо войти или зарегистрироваться</p>
+                <a href="{{ url_for('login') }}" class="btn" style="background-color: var(--pink); color: white;">Войти</a>
+                <a href="{{ url_for('register') }}" class="btn" style="background-color: var(--cream);">Регистрация</a>
+            </div>
+        {% endif %}
+    </div>
+</section>
+
+<!-- Отзывы -->
+<section id="reviews" class="py-5 section-cream">
+    <div class="container">
+        <h2 class="section-title text-center">Отзывы наших клиентов</h2>
+        
+        <div class="row">
+            {% for review in reviews %}
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <div class="mb-2">
+                                {% for i in range(5) %}
+                                    {% if i < review.rating %}
+                                        <i class="bi bi-star-fill" style="color: #ffc107;"></i>
+                                    {% else %}
+                                        <i class="bi bi-star" style="color: #ffc107;"></i>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                            <p class="card-text">"{{ review.text }}"</p>
+                            <p class="card-text"><small class="text-muted">— {{ review.user_name }}</small></p>
+                            <p class="card-text"><small class="text-muted">{{ review.created_at.strftime('%d.%m.%Y') }}</small></p>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <p class="text-center">Пока нет отзывов. Будьте первым!</p>
+            {% endfor %}
+        </div>
+        
+        {% if current_user.is_authenticated %}
+            <div class="text-center mt-4">
+                <button type="button" class="btn" style="background-color: var(--pink); color: white;" data-bs-toggle="modal" data-bs-target="#reviewModal">
+                    Оставить отзыв
+                </button>
+            </div>
+        {% endif %}
+    </div>
+</section>
+
+<!-- Модальное окно для отзыва -->
+<div class="modal fade" id="reviewModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Оставить отзыв</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('add_review') }}" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Оценка</label>
+                        <select class="form-select" name="rating" required>
+                            <option value="5">5 - Отлично</option>
+                            <option value="4">4 - Хорошо</option>
+                            <option value="3">3 - Нормально</option>
+                            <option value="2">2 - Плохо</option>
+                            <option value="1">1 - Ужасно</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Отзыв</label>
+                        <textarea class="form-control" name="text" rows="4" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                    <button type="submit" class="btn" style="background-color: var(--pink); color: white;">Отправить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Контакты -->
+<section id="contacts" class="py-5 section-white">
+    <div class="container">
+        <h2 class="section-title text-center">Контакты</h2>
+        <div class="row g-4">
+            <div class="col-md-3">
+                <div class="contact-item text-center">
+                    <div style="font-size: 2rem; margin-bottom: 10px">📍</div>
+                    <h5>Адрес</h5>
+                    <p class="mb-0">г. Минск</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="contact-item text-center">
+                    <div style="font-size: 2rem; margin-bottom: 10px">
+                        <i class="bi bi-telephone-fill"></i>
+                    </div>
+                    <h5>Телефон</h5>
+                    <p class="mb-0">+375 (29) 247-27-16</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="contact-item text-center">
+                    <div style="font-size: 2rem; margin-bottom: 10px">
+                        <i class="bi bi-telegram"></i>
+                    </div>
+                    <h5>Telegram</h5>
+                    <p class="mb-0">@printlyphoto</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="contact-item text-center">
+                    <div style="font-size: 2rem; margin-bottom: 10px">
+                        <i class="bi bi-chat-dots-fill"></i>
+                    </div>
+                    <h5>Viber</h5>
+                    <p class="mb-0">+375 (29) 247-27-16</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Модальное окно для загрузки фото -->
+<div class="modal fade" id="uploadModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Загрузка фотографий</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="upload-area mb-3" id="uploadArea">
+                    <div class="text-center p-4">
+                        <i class="bi bi-cloud-arrow-up" style="font-size: 3rem; color: var(--pink);"></i>
+                        <p>Перетащите файлы сюда или нажмите для выбора</p>
+                        <button type="button" class="btn btn-sm" style="background-color: var(--cream);" id="selectFilesBtn">
+                            Выбрать файлы
+                        </button>
+                        <input type="file" id="fileInput" multiple accept="image/*" style="display: none;">
+                    </div>
+                </div>
+                <div id="uploadProgress" class="progress mb-3" style="display: none;">
+                    <div class="progress-bar" style="width: 0%; background-color: var(--pink);">0%</div>
+                </div>
+                <div id="uploadedFilesList" class="mt-3"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                <button type="button" class="btn" style="background-color: var(--pink); color: white;" id="saveUploadedBtn">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="privacyModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Политика конфиденциальности</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="p-3">
+                    {% if privacy_policy %}
+                        {{ privacy_policy|safe }}
+                    {% else %}
+                        <h6>1. Общие положения</h6>
+                        <p>Настоящая политика обработки персональных данных составлена в соответствии с требованиями Закона Республики Беларусь от 7 мая 2021 г. № 99-З «О защите персональных данных» и определяет порядок обработки персональных данных и меры по обеспечению безопасности персональных данных, предпринимаемые ИП (наименование) (далее – Оператор).</p>
+                        
+                        <h6 class="mt-4">2. Основные понятия</h6>
+                        <p>Персональные данные – любая информация, относящаяся к прямо или косвенно определенному или определяемому физическому лицу (субъекту персональных данных).</p>
+                        
+                        <h6 class="mt-4">3. Цели сбора персональных данных</h6>
+                        <p>Оператор собирает и хранит только те персональные данные, которые необходимы для оказания услуг по печати фотографий и их доставки:</p>
+                        <ul>
+                            <li>Фамилия, имя, отчество</li>
+                            <li>Номер телефона</li>
+                            <li>Адрес доставки</li>
+                        </ul>
+                        
+                        <h6 class="mt-4">4. Обработка персональных данных</h6>
+                        <p>Обработка персональных данных осуществляется с согласия субъекта персональных данных на обработку его персональных данных.</p>
+                        
+                        <h6 class="mt-4">5. Хранение персональных данных</h6>
+                        <p>Персональные данные субъектов хранятся на территории Республики Беларусь. Срок хранения персональных данных – 3 года с момента последнего взаимодействия с клиентом.</p>
+                        
+                        <h6 class="mt-4">6. Права субъекта персональных данных</h6>
+                        <p>Субъект персональных данных имеет право:</p>
+                        <ul>
+                            <li>на получение информации, касающейся обработки его персональных данных</li>
+                            <li>на требование уточнения, блокирования или уничтожения его персональных данных</li>
+                            <li>на отзыв согласия на обработку персональных данных</li>
+                        </ul>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Переключение полей доставки
+    const belpostRadio = document.getElementById('belpost');
+    const europostRadio = document.getElementById('europost');
+    const belpostFields = document.getElementById('belpost-fields');
+    const europostFields = document.getElementById('europost-fields');
+    
+    function updateDeliveryFields() {
+        if (belpostRadio && belpostRadio.checked) {
+            belpostFields.style.display = 'block';
+            europostFields.style.display = 'none';
+        } else if (europostRadio && europostRadio.checked) {
+            belpostFields.style.display = 'none';
+            europostFields.style.display = 'block';
+        }
+    }
+    
+    if (belpostRadio) belpostRadio.addEventListener('change', updateDeliveryFields);
+    if (europostRadio) europostRadio.addEventListener('change', updateDeliveryFields);
+    
+    // Управление множественными форматами
+    let itemCount = 1;
+    const orderItems = document.getElementById('order-items');
+    const addBtn = document.getElementById('add-format-btn');
+    
+    if (addBtn) {
+        addBtn.addEventListener('click', function() {
+            const firstItem = document.querySelector('.order-item');
+            const newItem = firstItem.cloneNode(true);
+            
+            // Очищаем значения
+            newItem.querySelector('.format-select').value = '';
+            newItem.querySelector('.quantity-input').value = '';
+            newItem.querySelector('.item-subtotal').value = '0.00 BYN';
+            
+            // Обновляем индексы
+            const index = itemCount;
+            newItem.querySelector('.upload-photos-btn').dataset.formatIndex = index;
+            newItem.querySelector('.photo-count').id = `photo-count-${index}`;
+            newItem.querySelector('.photo-count').textContent = '0 фото';
+            
+            // Показываем кнопку удаления
+            const removeBtn = newItem.querySelector('.remove-item');
+            removeBtn.style.display = 'block';
+            removeBtn.addEventListener('click', function() {
+                newItem.remove();
+                calculateTotal();
+            });
+            
+            orderItems.appendChild(newItem);
+            itemCount++;
+            
+            // Добавляем обработчики для нового элемента
+            addItemHandlers(newItem);
+        });
+    }
+    
+    function addItemHandlers(item) {
+        const formatSelect = item.querySelector('.format-select');
+        const quantityInput = item.querySelector('.quantity-input');
+        const subtotalInput = item.querySelector('.item-subtotal');
+        
+        function calculateSubtotal() {
+            const format = formatSelect.value;
+            const quantity = parseInt(quantityInput.value) || 0;
+            
+            let price = 0;
+            if (format === '10x15') price = 0.35;
+            else if (format === '10x10' || format === '9x13') price = 0.40;
+            else if (format.includes('polaroid') || format.includes('fuji') || format === '5x15') price = 0.25;
+            else if (format === 'minipolaroid-7x10') price = 0.25;
+            else if (format === 'other до 10x15') price = 0.40;
+            else if (format === 'other до 7x10') price = 0.25;
+            
+            const subtotal = price * quantity;
+            subtotalInput.value = subtotal.toFixed(2) + ' BYN';
+            
+            calculateTotal();
+        }
+        
+        formatSelect.addEventListener('change', calculateSubtotal);
+        quantityInput.addEventListener('input', calculateSubtotal);
+    }
+    
+    // Добавляем обработчики для первого элемента
+    const firstItem = document.querySelector('.order-item');
+    if (firstItem) addItemHandlers(firstItem);
+    
+    function calculateTotal() {
+        let total = 0;
+        let totalQuantity = 0;
+        
+        document.querySelectorAll('.order-item').forEach(item => {
+            const subtotalText = item.querySelector('.item-subtotal').value;
+            const subtotal = parseFloat(subtotalText) || 0;
+            total += subtotal;
+            
+            const quantity = parseInt(item.querySelector('.quantity-input').value) || 0;
+            totalQuantity += quantity;
+        });
+        
+        // Применяем скидку
+        if (totalQuantity >= 200) {
+            total *= 0.95;
+        }
+        
+        document.getElementById('total-amount').textContent = total.toFixed(2);
+    }
+    
+    // Загрузка фотографий
+    let currentFormatIndex = 0;
+    let uploadedFiles = {};
+    
+    document.querySelectorAll('.upload-photos-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            currentFormatIndex = this.dataset.formatIndex;
+            const modal = new bootstrap.Modal(document.getElementById('uploadModal'));
+            modal.show();
+        });
+    });
+    
+    // Обработка загрузки файлов
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+    const selectFilesBtn = document.getElementById('selectFilesBtn');
+    
+    if (uploadArea) {
+        uploadArea.addEventListener('click', function() {
+            fileInput.click();
+        });
+        
+        uploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.style.borderColor = 'var(--pink)';
+        });
+        
+        uploadArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            this.style.borderColor = '';
+        });
+        
+        uploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.style.borderColor = '';
+            handleFiles(e.dataTransfer.files);
+        });
+    }
+    
+    if (selectFilesBtn) {
+        selectFilesBtn.addEventListener('click', function() {
+            fileInput.click();
+        });
+    }
+    
+    if (fileInput) {
+        fileInput.addEventListener('change', function() {
+            handleFiles(this.files);
+        });
+    }
+    
+    function handleFiles(files) {
+        const formData = new FormData();
+        formData.append('format', currentFormatIndex);
+        
+        for (let i = 0; i < files.length; i++) {
+            formData.append('photos', files[i]);
+        }
+        
+        const progressBar = document.getElementById('uploadProgress');
+        const progressBarInner = progressBar.querySelector('.progress-bar');
+        progressBar.style.display = 'block';
+        
+        fetch('/upload_photos', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                if (!uploadedFiles[currentFormatIndex]) {
+                    uploadedFiles[currentFormatIndex] = [];
+                }
+                uploadedFiles[currentFormatIndex] = uploadedFiles[currentFormatIndex].concat(data.files);
+                
+                // Обновляем счетчик
+                document.getElementById(`photo-count-${currentFormatIndex}`).textContent = 
+                    `${uploadedFiles[currentFormatIndex].length} фото`;
+                
+                // Показываем список загруженных
+                displayUploadedFiles(currentFormatIndex);
+            }
+            progressBar.style.display = 'none';
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            progressBar.style.display = 'none';
+        });
+    }
+    
+    function displayUploadedFiles(formatIndex) {
+        const list = document.getElementById('uploadedFilesList');
+        if (!list) return;
+        
+        const files = uploadedFiles[formatIndex] || [];
+        let html = '<h6>Загруженные файлы:</h6>';
+        
+        files.forEach((file, i) => {
+            html += `
+                <div class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded">
+                    <span><i class="bi bi-file-image"></i> ${file.original_filename}</span>
+                    <button type="button" class="btn btn-sm btn-link text-danger" onclick="deleteFile('${file.saved_filename}', ${formatIndex}, ${i})">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            `;
+        });
+        
+        list.innerHTML = html;
+    }
+    
+    window.deleteFile = function(filename, formatIndex, fileIndex) {
+        fetch('/delete_upload/' + filename, {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                uploadedFiles[formatIndex].splice(fileIndex, 1);
+                displayUploadedFiles(formatIndex);
+                document.getElementById(`photo-count-${formatIndex}`).textContent = 
+                    `${uploadedFiles[formatIndex].length} фото`;
+            }
+        });
+    };
+    
+    // Сохранение перед отправкой формы
+    document.getElementById('saveUploadedBtn')?.addEventListener('click', function() {
+        const modal = bootstrap.Modal.getInstance(document.getElementById('uploadModal'));
+        modal.hide();
+    });
+});
+</script>
+{% endblock %}

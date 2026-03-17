@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Заказ оформлен{% endblock %}
+
+{% block content %}
+<section class="py-5 section-cream">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card form-card p-5 text-center">
+                    <div class="mb-4">
+                        <i class="bi bi-check-circle-fill" style="font-size: 5rem; color: var(--pink);"></i>
+                    </div>
+                    
+                    <h2 class="mb-3" style="color: var(--pink);">Заказ успешно оформлен!</h2>
+                    
+                    <p class="lead mb-4">Номер заказа: <strong>{{ order.order_number }}</strong></p>
+                    
+                    <div class="alert" style="background-color: var(--cream-light); border-left: 4px solid var(--pink);">
+                        <p class="mb-0">
+                            <i class="bi bi-clock"></i> 
+                            Вы можете отменить или отредактировать заказ в течение 30 минут после оформления.
+                        </p>
+                        <p class="mb-0 mt-2">
+                            Время до окончания редактирования: 
+                            <span id="timer" class="fw-bold" style="color: var(--pink);"></span>
+                        </p>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <a href="{{ url_for('view_order', order_id=order.id) }}" class="btn" style="background-color: var(--pink); color: white;">
+                            Перейти к заказу
+                        </a>
+                        <a href="{{ url_for('index') }}" class="btn" style="background-color: var(--cream);">
+                            На главную
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const endTime = new Date('{{ order.can_edit_until.strftime('%Y-%m-%d %H:%M:%S') }}').getTime();
+    
+    const timer = setInterval(function() {
+        const now = new Date().getTime();
+        const distance = endTime - now;
+        
+        if (distance < 0) {
+            clearInterval(timer);
+            document.getElementById('timer').innerHTML = 'Время вышло';
+            return;
+        }
+        
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+        
+        document.getElementById('timer').innerHTML = 
+            `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }, 1000);
+});
+</script>
+{% endblock %}

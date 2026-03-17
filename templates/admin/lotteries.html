@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Управление розыгрышами{% endblock %}
+
+{% block content %}
+<section class="py-5 section-cream">
+    <div class="container">
+        <h2 class="section-title text-center">Управление розыгрышами</h2>
+        
+        <div class="mb-4 text-end">
+            <button type="button" class="btn" style="background-color: var(--pink); color: white;" data-bs-toggle="modal" data-bs-target="#createLotteryModal">
+                <i class="bi bi-plus-circle"></i> Создать розыгрыш
+            </button>
+        </div>
+        
+        <div class="card form-card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Название</th>
+                                <th>Приз</th>
+                                <th>Дата начала</th>
+                                <th>Дата окончания</th>
+                                <th>Участников</th>
+                                <th>Статус</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for lottery in lotteries %}
+                                <tr>
+                                    <td>{{ lottery.title }}</td>
+                                    <td>{{ lottery.prize }}</td>
+                                    <td>{{ lottery.start_date.strftime('%d.%m.%Y') }}</td>
+                                    <td>{{ lottery.end_date.strftime('%d.%m.%Y') }}</td>
+                                    <td>{{ lottery.participants|length }}</td>
+                                    <td>
+                                        {% if lottery.is_active and lottery.end_date > now() %}
+                                            <span class="badge bg-success">Активен</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Завершен</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="6" class="text-center py-4">
+                                        <p>Розыгрышей пока нет</p>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-3">
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">← Назад</a>
+        </div>
+    </div>
+</section>
+
+<!-- Модальное окно создания розыгрыша -->
+<div class="modal fade" id="createLotteryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Создать новый розыгрыш</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('create_lottery') }}" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Название</label>
+                        <input type="text" class="form-control" name="title" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Описание</label>
+                        <textarea class="form-control" name="description" rows="3" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Приз</label>
+                        <input type="text" class="form-control" name="prize" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Дата окончания</label>
+                        <input type="date" class="form-control" name="end_date" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn" style="background-color: var(--pink); color: white;">Создать</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

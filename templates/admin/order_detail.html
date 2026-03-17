@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}Заказ {{ order.order_number }}{% endblock %}
+
+{% block content %}
+<section class="py-5 section-cream">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-8 mx-auto">
+                <div class="card form-card p-4">
+                    <h2 class="mb-4" style="color: var(--pink);">Заказ #{{ order.order_number }}</h2>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <p><strong>Статус:</strong> 
+                                {% if order.status == 'pending' %}
+                                    <span class="badge bg-warning">Ожидает</span>
+                                {% elif order.status == 'printing' %}
+                                    <span class="badge bg-info">В печати</span>
+                                {% elif order.status == 'ready' %}
+                                    <span class="badge bg-success">Готов</span>
+                                {% elif order.status == 'shipped' %}
+                                    <span class="badge bg-primary">Отправлен</span>
+                                {% elif order.status == 'completed' %}
+                                    <span class="badge bg-secondary">Завершен</span>
+                                {% elif order.status == 'cancelled' %}
+                                    <span class="badge bg-danger">Отменен</span>
+                                {% endif %}
+                            </p>
+                            <p><strong>Дата:</strong> {{ order.created_at.strftime('%d.%m.%Y %H:%M') }}</p>
+                            <p><strong>Клиент:</strong> {{ order.recipient_name }}</p>
+                            <p><strong>Телефон:</strong> {{ order.phone }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Способ доставки:</strong> 
+                                {% if order.delivery_method == 'belpost' %}
+                                    Белпочта
+                                {% else %}
+                                    Европочта
+                                {% endif %}
+                            </p>
+                            <p><strong>Сумма:</strong> {{ order.total_amount }} BYN</p>
+                            {% if order.tracking_number %}
+                                <p><strong>Трек-код:</strong> {{ order.tracking_number }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <h5 class="mb-3">Состав заказа</h5>
+                    <table class="table mb-4">
+                        <thead>
+                            <tr>
+                                <th>Формат</th>
+                                <th>Кол-во</th>
+                                <th>Цена</th>
+                                <th>Сумма</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in order.items %}
+                                <tr>
+                                    <td>{{ item.format_name }}</td>
+                                    <td>{{ item.quantity }}</td>
+                                    <td>{{ item.price_per_item }} BYN</td>
+                                    <td>{{ item.subtotal }} BYN</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    
+                    {% if order.notes %}
+                        <p><strong>Примечания:</strong> {{ order.notes }}</p>
+                    {% endif %}
+                    
+                    <h5 class="mb-3">Фотографии ({{ order.photos|length }})</h5>
+                    <div class="mb-4">
+                        <a href="{{ url_for('download_order_photos', order_id=order.id) }}" class="btn" style="background-color: var(--cream);">
+                            <i class="bi bi-download"></i> Скачать все фото (ZIP)
+                        </a>
+                    </div>
+                    
+                    <hr>
+                    
+                    <h5 class="mb-3">Обновить статус</h5>
+                    <form method="POST">
+                        <div class="row">
+                            <div class="col-md-5 mb-3">
+                                <select class="form-select" name="status">
+                                    <option value="pending" {% if order.status == 'pending' %}selected{% endif %}>Ожидает</option>
+                                    <option value="printing" {% if order.status == 'printing' %}selected{% endif %}>В печати</option>
+                                    <option value="ready" {% if order.status == 'ready' %}selected{% endif %}>Готов</option>
+                                    <option value="shipped" {% if order.status == 'shipped' %}selected{% endif %}>Отправлен</option>
+                                    <option value="completed" {% if order.status == 'completed' %}selected{% endif %}>Завершен</option>
+                                    <option value="cancelled" {% if order.status == 'cancelled' %}selected{% endif %}>Отменен</option>
+                                </select>
+                            </div>
+                            <div class="col-md-5 mb-3">
+                                <input type="text" class="form-control" name="tracking_number" placeholder="Трек-код" value="{{ order.tracking_number or '' }}">
+                            </div>
+                            <div class="col-md-2 mb-3">
+                                <button type="submit" class="btn w-100" style="background-color: var(--pink); color: white;">Обновить</button>
+                            </div>
+                        </div>
+                    </form>
+                    
+                    <div class="mt-3">
+                        <a href="{{ url_for('admin_orders') }}" class="btn btn-secondary">← Назад к списку</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

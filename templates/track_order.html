@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Отслеживание заказа{% endblock %}
+
+{% block content %}
+<section class="py-5 section-cream">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card form-card p-4">
+                    <h2 class="text-center mb-4" style="color: var(--pink);">Отслеживание заказа</h2>
+                    
+                    <div class="text-center mb-4">
+                        <h4>Заказ #{{ order.order_number }}</h4>
+                        <p class="text-muted">от {{ order.created_at.strftime('%d.%m.%Y %H:%M') }}</p>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <div class="progress" style="height: 30px;">
+                            {% if order.status == 'pending' %}
+                                <div class="progress-bar bg-warning" style="width: 20%;">Ожидает</div>
+                            {% elif order.status == 'printing' %}
+                                <div class="progress-bar bg-info" style="width: 40%;">В печати</div>
+                            {% elif order.status == 'ready' %}
+                                <div class="progress-bar bg-success" style="width: 60%;">Готов</div>
+                            {% elif order.status == 'shipped' %}
+                                <div class="progress-bar bg-primary" style="width: 80%;">Отправлен</div>
+                            {% elif order.status == 'completed' %}
+                                <div class="progress-bar bg-secondary" style="width: 100%;">Завершен</div>
+                            {% elif order.status == 'cancelled' %}
+                                <div class="progress-bar bg-danger" style="width: 100%;">Отменен</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Статус:</strong> 
+                                {% if order.status == 'pending' %}
+                                    <span class="badge bg-warning">Ожидает обработки</span>
+                                {% elif order.status == 'printing' %}
+                                    <span class="badge bg-info">В печати</span>
+                                {% elif order.status == 'ready' %}
+                                    <span class="badge bg-success">Готов к отправке</span>
+                                {% elif order.status == 'shipped' %}
+                                    <span class="badge bg-primary">Отправлен</span>
+                                {% elif order.status == 'completed' %}
+                                    <span class="badge bg-secondary">Завершен</span>
+                                {% elif order.status == 'cancelled' %}
+                                    <span class="badge bg-danger">Отменен</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Сумма:</strong> {{ order.total_amount }} BYN</p>
+                        </div>
+                    </div>
+                    
+                    {% if order.tracking_number %}
+                        <div class="alert" style="background-color: var(--cream-light);">
+                            <p class="mb-1"><strong>Трек-номер:</strong> {{ order.tracking_number }}</p>
+                            {% if tracking_urls[order.delivery_method] %}
+                                <a href="{{ tracking_urls[order.delivery_method] }}" target="_blank" class="btn btn-sm" style="background-color: var(--pink); color: white;">
+                                    Отследить на сайте {{ 'Белпочты' if order.delivery_method == 'belpost' else 'Европочты' }}
+                                </a>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                    
+                    <hr>
+                    
+                    <h5 class="mb-3">Детали доставки</h5>
+                    <p><strong>Способ доставки:</strong> {{ 'Белпочта' if order.delivery_method == 'belpost' else 'Европочта' }}</p>
+                    <p><strong>Получатель:</strong> {{ order.recipient_name }}</p>
+                    <p><strong>Телефон:</strong> {{ order.phone }}</p>
+                    
+                    <div class="mt-4 text-center">
+                        <a href="{{ url_for('index') }}" class="btn" style="background-color: var(--cream);">На главную</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
