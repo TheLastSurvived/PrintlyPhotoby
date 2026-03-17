@@ -6,3 +6,4 @@ Werkzeug
 Pillow
 email-validator
 python-dotenv
+gunicorn
