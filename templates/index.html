@@ -499,7 +499,7 @@
                         <button type="button" class="btn btn-sm" style="background-color: var(--cream);" id="selectFilesBtn">
                             Выбрать файлы
                         </button>
-                        <input type="file" id="fileInput" multiple accept="image/*" style="display: none;">
+                        <input type="file" id="fileInput" multiple accept=".jpg,.jpeg,.png,.gif,.bmp,.tiff,.webp,.heic,.heif" style="display: none;">
                     </div>
                 </div>
                 <div id="uploadProgress" class="progress mb-3" style="display: none;">
@@ -726,44 +726,76 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    function handleFiles(files) {
-        const formData = new FormData();
-        formData.append('format', currentFormatIndex);
+   function handleFiles(files) {
+    // Разрешенные форматы
+    const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'tiff', 'webp', 'heic', 'heif'];
+    const validFiles = [];
+    const invalidFiles = [];
+    
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const extension = file.name.split('.').pop().toLowerCase();
         
-        for (let i = 0; i < files.length; i++) {
-            formData.append('photos', files[i]);
-        }
-        
-        const progressBar = document.getElementById('uploadProgress');
-        const progressBarInner = progressBar.querySelector('.progress-bar');
-        progressBar.style.display = 'block';
-        
-        fetch('/upload_photos', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                if (!uploadedFiles[currentFormatIndex]) {
-                    uploadedFiles[currentFormatIndex] = [];
-                }
-                uploadedFiles[currentFormatIndex] = uploadedFiles[currentFormatIndex].concat(data.files);
-                
-                // Обновляем счетчик
-                document.getElementById(`photo-count-${currentFormatIndex}`).textContent = 
-                    `${uploadedFiles[currentFormatIndex].length} фото`;
-                
-                // Показываем список загруженных
-                displayUploadedFiles(currentFormatIndex);
+        if (allowedExtensions.includes(extension)) {
+            // Проверка размера (максимум 50MB)
+            if (file.size > 50 * 1024 * 1024) {
+                alert(`Файл ${file.name} слишком большой (максимум 50MB)`);
+                continue;
             }
-            progressBar.style.display = 'none';
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            progressBar.style.display = 'none';
-        });
+            validFiles.push(file);
+        } else {
+            invalidFiles.push(file.name);
+        }
     }
+    
+    if (invalidFiles.length > 0) {
+        alert(`Неподдерживаемые форматы: ${invalidFiles.join(', ')}\n\nПоддерживаются: JPG, PNG, GIF, BMP, TIFF, WEBP, HEIC`);
+        if (validFiles.length === 0) return;
+    }
+    
+    if (validFiles.length === 0) return;
+    
+    const formData = new FormData();
+    formData.append('format', currentFormatIndex);
+    
+    for (let i = 0; i < validFiles.length; i++) {
+        formData.append('photos', validFiles[i]);
+    }
+    
+    const progressBar = document.getElementById('uploadProgress');
+    const progressBarInner = progressBar.querySelector('.progress-bar');
+    progressBar.style.display = 'block';
+    
+    fetch('/upload_photos', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (!uploadedFiles[currentFormatIndex]) {
+                uploadedFiles[currentFormatIndex] = [];
+            }
+            uploadedFiles[currentFormatIndex] = uploadedFiles[currentFormatIndex].concat(data.files);
+            
+            // Обновляем счетчик
+            document.getElementById(`photo-count-${currentFormatIndex}`).textContent = 
+                `${uploadedFiles[currentFormatIndex].length} фото`;
+            
+            // Показываем список загруженных
+            displayUploadedFiles(currentFormatIndex);
+        }
+        if (data.errors && data.errors.length > 0) {
+            alert('Ошибки загрузки:\n' + data.errors.join('\n'));
+        }
+        progressBar.style.display = 'none';
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Ошибка загрузки файлов');
+        progressBar.style.display = 'none';
+    });
+}
     
     function displayUploadedFiles(formatIndex) {
         const list = document.getElementById('uploadedFilesList');

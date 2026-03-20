@@ -3,6 +3,9 @@ import zipfile
 from datetime import datetime, timedelta
 from io import BytesIO
 from PIL import Image
+import pillow_heif
+import imghdr
+pillow_heif.register_heif_opener()
 from flask import (
     Flask, render_template, request, redirect, url_for, 
     flash, jsonify, send_file, abort, session
@@ -23,7 +26,9 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB
-app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff', 'webp'}
+app.config['ALLOWED_EXTENSIONS'] = {
+    'png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff', 'webp', 'heic', 'heif'
+}
 
 # Создание папок
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -137,25 +142,46 @@ class SiteContent(db.Model):
 
 # Вспомогательные функции
 def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
+    allowed = app.config['ALLOWED_EXTENSIONS']
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed
 
 def convert_to_jpg(image_path, output_path, quality=95):
     """Конвертирует изображение в JPG с сохранением качества"""
     try:
-        with Image.open(image_path) as img:
-            # Конвертируем в RGB если нужно
-            if img.mode in ('RGBA', 'LA', 'P'):
-                rgb_img = Image.new('RGB', img.size, (255, 255, 255))
-                rgb_img.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
-                img = rgb_img
-            elif img.mode != 'RGB':
-                img = img.convert('RGB')
-            
-            # Сохраняем с высоким качеством
-            img.save(output_path, 'JPEG', quality=quality, optimize=True)
+        # Проверяем формат файла
+        file_ext = os.path.splitext(image_path)[1].lower()
+        
+        # Для HEIC/HEIF файлов используем pillow_heif
+        if file_ext in ['.heic', '.heif']:
+            heif_file = pillow_heif.read_heif(image_path)
+            img = Image.frombytes(
+                heif_file.mode, 
+                heif_file.size, 
+                heif_file.data,
+                "raw",
+                heif_file.mode,
+                heif_file.stride,
+            )
+        else:
+            img = Image.open(image_path)
+        
+        # Конвертируем в RGB если нужно
+        if img.mode in ('RGBA', 'LA', 'P'):
+            rgb_img = Image.new('RGB', img.size, (255, 255, 255))
+            # Пробуем использовать альфа-канал для прозрачности
+            if img.mode == 'RGBA':
+                rgb_img.paste(img, mask=img.split()[-1])
+            else:
+                rgb_img.paste(img)
+            img = rgb_img
+        elif img.mode != 'RGB':
+            img = img.convert('RGB')
+        
+        # Сохраняем с высоким качеством
+        img.save(output_path, 'JPEG', quality=quality, optimize=True)
         return True
     except Exception as e:
-        print(f"Error converting image: {e}")
+        print(f"Error converting image {image_path}: {e}")
         return False
 
 def create_zip_from_photos(order_id):
@@ -481,41 +507,55 @@ def upload_photos():
         return jsonify({'error': 'Максимум 50 файлов за заказ'}), 400
     
     saved_files = []
+    errors = []
     
     for file in files:
         if file and allowed_file(file.filename):
-            # Генерируем уникальное имя
-            ext = 'jpg'  # Все конвертируем в JPG
-            filename = secure_filename(f"{uuid.uuid4().hex}.{ext}")
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            
-            # Сохраняем временно
-            temp_path = os.path.join(app.config['UPLOAD_FOLDER'], f"temp_{filename}")
-            file.save(temp_path)
-            
-            # Конвертируем в JPG
-            if convert_to_jpg(temp_path, filepath):
-                # Удаляем временный файл
-                os.remove(temp_path)
+            try:
+                # Генерируем уникальное имя
+                ext = 'jpg'
+                filename = secure_filename(f"{uuid.uuid4().hex}.{ext}")
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 
-                file_info = {
-                    'original_filename': file.filename,
-                    'saved_filename': filename,
-                    'size': os.path.getsize(filepath),
-                    'format': format_name
-                }
-                uploaded_files.append(file_info)
-                saved_files.append(file_info)
-            else:
-                return jsonify({'error': f'Ошибка конвертации файла {file.filename}'}), 500
+                # Сохраняем временно с оригинальным расширением
+                original_ext = file.filename.rsplit('.', 1)[1].lower()
+                temp_filename = secure_filename(f"temp_{uuid.uuid4().hex}.{original_ext}")
+                temp_path = os.path.join(app.config['UPLOAD_FOLDER'], temp_filename)
+                file.save(temp_path)
+                
+                # Конвертируем в JPG
+                if convert_to_jpg(temp_path, filepath):
+                    # Удаляем временный файл
+                    if os.path.exists(temp_path):
+                        os.remove(temp_path)
+                    
+                    file_info = {
+                        'original_filename': file.filename,
+                        'saved_filename': filename,
+                        'size': os.path.getsize(filepath),
+                        'format': format_name
+                    }
+                    uploaded_files.append(file_info)
+                    saved_files.append(file_info)
+                else:
+                    errors.append(f'Ошибка конвертации файла {file.filename}')
+                    if os.path.exists(temp_path):
+                        os.remove(temp_path)
+            except Exception as e:
+                errors.append(f'Ошибка обработки файла {file.filename}: {str(e)}')
+        else:
+            errors.append(f'Неподдерживаемый формат файла: {file.filename}')
     
     session['uploaded_files'] = uploaded_files
     
-    return jsonify({
-        'success': True,
+    response = {
+        'success': len(saved_files) > 0,
         'files': saved_files,
-        'total': len(uploaded_files)
-    })
+        'total': len(uploaded_files),
+        'errors': errors
+    }
+    
+    return jsonify(response)
 
 @app.route('/delete_upload/<filename>', methods=['POST'])
 @login_required
