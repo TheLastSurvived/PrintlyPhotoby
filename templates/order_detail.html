@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}Заказ #{{ order.order_number }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <!-- Заголовок -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Заказ #{{ order.order_number }}</h2>
+                <span class="badge bg-{{ 
+                    'secondary' if order.status == 'pending' 
+                    else 'info' if order.status == 'printing' 
+                    else 'primary' if order.status == 'ready' 
+                    else 'success' if order.status == 'shipped' 
+                    else 'danger' 
+                }} fs-6 p-2">
+                    {{ 
+                        'Ожидает' if order.status == 'pending' 
+                        else 'Печатается' if order.status == 'printing' 
+                        else 'Готов' if order.status == 'ready' 
+                        else 'Отправлен' if order.status == 'shipped' 
+                        else 'Завершен' if order.status == 'completed' 
+                        else 'Отменен' 
+                    }}
+                </span>
+            </div>
+
+            <!-- Информация о заказе -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <small class="text-muted">Дата заказа</small>
+                            <p class="mb-0">{{ order.created_at.strftime('%d.%m.%Y %H:%M') }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <small class="text-muted">Сумма заказа</small>
+                            <p class="mb-0 fw-bold fs-5">{{ "%.2f"|format(order.total_amount) }} BYN</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <small class="text-muted">Получатель</small>
+                            <p class="mb-0">{{ order.recipient_name }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <small class="text-muted">Телефон</small>
+                            <p class="mb-0">{{ order.phone }}</p>
+                        </div>
+                        <div class="col-12 mb-3">
+                            <small class="text-muted">Способ доставки</small>
+                            <p class="mb-0">
+                                {% if order.delivery_method == 'belpost' %}
+                                    Белпочта
+                                {% else %}
+                                    Европочта
+                                {% endif %}
+                            </p>
+                        </div>
+                        {% if order.tracking_number %}
+                        <div class="col-12 mb-3">
+                            <small class="text-muted">Трек-номер</small>
+                            <p class="mb-0">
+                                <strong>{{ order.tracking_number }}</strong>
+                                {% if order.delivery_method == 'belpost' %}
+                                    <a href="https://www.belpost.by/tracking/{{ order.tracking_number }}" target="_blank" class="ms-2">Отследить</a>
+                                {% elif order.delivery_method == 'europost' %}
+                                    <a href="https://europost.by/tracking/{{ order.tracking_number }}" target="_blank" class="ms-2">Отследить</a>
+                                {% endif %}
+                            </p>
+                        </div>
+                        {% endif %}
+                        {% if order.notes %}
+                        <div class="col-12">
+                            <small class="text-muted">Примечания</small>
+                            <p class="mb-0">{{ order.notes }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Состав заказа -->
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Состав заказа</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Формат</th>
+                                    <th class="text-center">Кол-во</th>
+                                    <th class="text-end">Цена</th>
+                                    <th class="text-end">Сумма</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in order.items %}
+                                <tr>
+                                    <td>{{ item.format_name }}</td>
+                                    <td class="text-center">{{ item.quantity }} шт</td>
+                                    <td class="text-end">{{ "%.2f"|format(item.price_per_item) }} BYN</td>
+                                    <td class="text-end">{{ "%.2f"|format(item.subtotal) }} BYN</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="table-light">
+                                <tr>
+                                    <td colspan="3" class="text-end fw-bold">Итого:</td>
+                                    <td class="text-end fw-bold">{{ "%.2f"|format(order.total_amount) }} BYN</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Фотографии -->
+            {% if order.photos %}
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Фотографии ({{ order.photos|length }} шт)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-2">
+                        {% for photo in order.photos[:12] %}
+                        <div class="col-3 col-md-2">
+                            <div class="border rounded p-1 text-center">
+                                <i class="bi bi-file-image" style="font-size: 2rem; color: var(--pink);"></i>
+                                <small class="d-block text-truncate">{{ photo.original_filename }}</small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        {% if order.photos|length > 12 %}
+                        <div class="col-12 text-center mt-2">
+                            <small class="text-muted">и еще {{ order.photos|length - 12 }} фото</small>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Действия -->
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('profile') }}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Назад
+                </a>
+                
+                {% if can_edit %}
+                <form action="{{ url_for('cancel_order', order_id=order.id) }}" method="POST" 
+                      onsubmit="return confirm('Вы уверены, что хотите отменить заказ?')">
+                    <button type="submit" class="btn btn-danger">Отменить заказ</button>
+                </form>
+                {% endif %}
+                
+                {% if order.tracking_number and order.status in ['shipped', 'completed'] %}
+                <a href="https://www.belpost.by/tracking/{{ order.tracking_number }}" 
+                   target="_blank" class="btn btn-info">
+                    <i class="bi bi-truck"></i> Отследить
+                </a>
+                {% endif %}
+            </div>
+            
+            {% if can_edit %}
+            <div class="alert alert-info mt-3">
+                <i class="bi bi-info-circle"></i>
+                Вы можете отменить заказ до {{ order.can_edit_until.strftime('%d.%m.%Y %H:%M') }}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

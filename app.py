@@ -18,6 +18,13 @@ from flask_login import (
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 import uuid
+import logging
+import time
+import tempfile
+
+# Настройка логирования
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 # Конфигурация
 app = Flask(__name__)
@@ -184,17 +191,132 @@ def convert_to_jpg(image_path, output_path, quality=95):
         print(f"Error converting image {image_path}: {e}")
         return False
 
+def convert_to_jpg_bytes(image_path, quality=95):
+    """
+    Конвертирует изображение в JPG и возвращает BytesIO объект
+    """
+    try:
+        logger.debug(f"Converting to bytes: {image_path}")
+        
+        # Определяем тип файла по расширению
+        file_ext = os.path.splitext(image_path)[1].lower()
+        
+        # Открываем изображение
+        img = None
+        
+        # Для HEIC/HEIF файлов используем pillow_heif
+        if file_ext in ['.heic', '.heif']:
+            try:
+                logger.debug(f"Processing HEIC/HEIF file for zip: {image_path}")
+                heif_file = pillow_heif.open_heif(image_path)
+                
+                # Конвертируем в PIL Image
+                img = Image.frombytes(
+                    heif_file.mode,
+                    heif_file.size,
+                    heif_file.data,
+                    "raw",
+                    heif_file.mode,
+                    heif_file.stride,
+                )
+                
+                # Проверяем на наличие информации о повороте
+                if hasattr(heif_file, 'info') and 'orientation' in heif_file.info:
+                    orientation = heif_file.info['orientation']
+                    logger.debug(f"HEIC orientation: {orientation}")
+                    if orientation == 6:
+                        img = img.rotate(270, expand=True)
+                    elif orientation == 8:
+                        img = img.rotate(90, expand=True)
+                    elif orientation == 3:
+                        img = img.rotate(180, expand=True)
+                        
+            except Exception as e:
+                logger.error(f"Error opening HEIC file: {e}")
+                # Пробуем другой метод
+                try:
+                    img = Image.open(image_path)
+                except:
+                    raise
+        else:
+            # Для остальных форматов используем стандартный PIL
+            img = Image.open(image_path)
+        
+        if img is None:
+            raise Exception("Failed to open image")
+        
+        # Конвертируем в RGB если нужно
+        if img.mode in ('RGBA', 'LA', 'P'):
+            # Создаем белый фон для прозрачных областей
+            rgb_img = Image.new('RGB', img.size, (255, 255, 255))
+            if img.mode == 'RGBA':
+                # Используем альфа-канал как маску
+                rgb_img.paste(img, mask=img.split()[-1])
+            elif img.mode == 'P':
+                # Конвертируем палитровое изображение в RGBA, затем в RGB
+                img = img.convert('RGBA')
+                rgb_img.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
+            else:
+                rgb_img.paste(img)
+            img = rgb_img
+        elif img.mode != 'RGB':
+            img = img.convert('RGB')
+        
+        # Сохраняем в BytesIO
+        output = BytesIO()
+        img.save(output, 'JPEG', quality=quality, optimize=True, progressive=True)
+        output.seek(0)
+        
+        logger.debug(f"Successfully converted to JPG bytes, size: {output.getbuffer().nbytes} bytes")
+        return output
+        
+    except Exception as e:
+        logger.error(f"Error converting image to bytes {image_path}: {str(e)}", exc_info=True)
+        return None
+
 def create_zip_from_photos(order_id):
-    """Создает ZIP архив с фотографиями заказа"""
+    """Создает ZIP архив с фотографиями заказа, все фото конвертируются в JPG"""
     order = Order.query.get_or_404(order_id)
     zip_buffer = BytesIO()
     
     with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
         for photo in order.photos:
             photo_path = os.path.join(app.config['UPLOAD_FOLDER'], photo.saved_filename)
+            
             if os.path.exists(photo_path):
-                # Добавляем файл в архив с оригинальным именем
-                zip_file.write(photo_path, photo.original_filename)
+                try:
+                    # Получаем имя файла без расширения
+                    original_name = os.path.splitext(photo.original_filename)[0]
+                    # Очищаем имя файла от недопустимых символов
+                    original_name = secure_filename(original_name)
+                    # Добавляем расширение .jpg
+                    new_filename = f"{original_name}.jpg"
+                    
+                    # Если имя слишком длинное, укорачиваем
+                    if len(new_filename) > 200:
+                        new_filename = f"{original_name[:150]}.jpg"
+                    
+                    # Конвертируем изображение в JPG байты
+                    jpg_bytes = convert_to_jpg_bytes(photo_path)
+                    
+                    if jpg_bytes:
+                        # Добавляем конвертированное изображение в архив
+                        zip_file.writestr(new_filename, jpg_bytes.getvalue())
+                        logger.debug(f"Added {new_filename} to zip")
+                    else:
+                        # Если конвертация не удалась, пробуем добавить оригинальный файл
+                        logger.warning(f"Failed to convert {photo.original_filename}, adding original")
+                        zip_file.write(photo_path, photo.original_filename)
+                        
+                except Exception as e:
+                    logger.error(f"Error processing photo {photo.original_filename}: {e}")
+                    # В случае ошибки добавляем оригинальный файл
+                    try:
+                        zip_file.write(photo_path, photo.original_filename)
+                    except:
+                        logger.error(f"Failed to add original file {photo.original_filename}")
+            else:
+                logger.warning(f"Photo file not found: {photo_path}")
     
     zip_buffer.seek(0)
     return zip_buffer
@@ -493,7 +615,7 @@ def track_order(order_number):
 @app.route('/upload_photos', methods=['POST'])
 @login_required
 def upload_photos():
-    """Загрузка фотографий через AJAX"""
+    """Загрузка фотографий через AJAX с улучшенной обработкой HEIC"""
     if 'photos' not in request.files:
         return jsonify({'error': 'No files uploaded'}), 400
     
@@ -510,41 +632,63 @@ def upload_photos():
     errors = []
     
     for file in files:
-        if file and allowed_file(file.filename):
+        if file and file.filename:
             try:
-                # Генерируем уникальное имя
-                ext = 'jpg'
-                filename = secure_filename(f"{uuid.uuid4().hex}.{ext}")
-                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                original_filename = file.filename
+                # Получаем расширение
+                original_ext = original_filename.rsplit('.', 1)[1].lower() if '.' in original_filename else ''
                 
-                # Сохраняем временно с оригинальным расширением
-                original_ext = file.filename.rsplit('.', 1)[1].lower()
-                temp_filename = secure_filename(f"temp_{uuid.uuid4().hex}.{original_ext}")
+                print(f"Processing file: {original_filename}, extension: {original_ext}, size: {file.content_length}")
+                
+                # Генерируем уникальное имя для сохранения
+                unique_id = uuid.uuid4().hex
+                temp_filename = f"temp_{unique_id}.{original_ext}"
                 temp_path = os.path.join(app.config['UPLOAD_FOLDER'], temp_filename)
+                
+                # Сохраняем временный файл
                 file.save(temp_path)
+                print(f"Saved temp file: {temp_path}, size: {os.path.getsize(temp_path)}")
+                
+                # Проверяем, что файл сохранен
+                if not os.path.exists(temp_path) or os.path.getsize(temp_path) == 0:
+                    errors.append(f'Ошибка сохранения файла {original_filename}')
+                    continue
+                
+                # Генерируем имя для конечного JPG файла
+                final_filename = f"{unique_id}.jpg"
+                final_path = os.path.join(app.config['UPLOAD_FOLDER'], final_filename)
                 
                 # Конвертируем в JPG
-                if convert_to_jpg(temp_path, filepath):
+                if convert_to_jpg(temp_path, final_path):
                     # Удаляем временный файл
                     if os.path.exists(temp_path):
                         os.remove(temp_path)
                     
-                    file_info = {
-                        'original_filename': file.filename,
-                        'saved_filename': filename,
-                        'size': os.path.getsize(filepath),
-                        'format': format_name
-                    }
-                    uploaded_files.append(file_info)
-                    saved_files.append(file_info)
+                    # Проверяем, что конечный файл создан
+                    if os.path.exists(final_path) and os.path.getsize(final_path) > 0:
+                        file_info = {
+                            'original_filename': original_filename,
+                            'saved_filename': final_filename,
+                            'size': os.path.getsize(final_path),
+                            'format': format_name
+                        }
+                        uploaded_files.append(file_info)
+                        saved_files.append(file_info)
+                        print(f"Successfully processed file: {original_filename}")
+                    else:
+                        errors.append(f'Ошибка сохранения конвертированного файла {original_filename}')
                 else:
-                    errors.append(f'Ошибка конвертации файла {file.filename}')
+                    errors.append(f'Ошибка конвертации файла {original_filename}')
                     if os.path.exists(temp_path):
                         os.remove(temp_path)
+                        
             except Exception as e:
+                print(f"Error processing file {file.filename}: {str(e)}")
+                import traceback
+                traceback.print_exc()
                 errors.append(f'Ошибка обработки файла {file.filename}: {str(e)}')
         else:
-            errors.append(f'Неподдерживаемый формат файла: {file.filename}')
+            errors.append(f'Пустой файл: {file.filename if hasattr(file, "filename") else "unknown"}')
     
     session['uploaded_files'] = uploaded_files
     
