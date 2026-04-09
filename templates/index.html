@@ -816,135 +816,115 @@ document.addEventListener('DOMContentLoaded', function() {
             alert('Ошибка при удалении файла');
         });
     };
-    
-    // Функция обработки файлов
-    function handleFiles(files) {
-        if (!files || files.length === 0) {
-            console.log('No files selected');
-            return;
-        }
-        
-        console.log(`Processing ${files.length} files for format ${currentFormatIndex}`);
-        
-        // Разрешенные форматы
-        const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'tiff', 'webp', 'heic', 'heif'];
-        const validFiles = [];
-        const invalidFiles = [];
-        
-        for (let i = 0; i < files.length; i++) {
-            const file = files[i];
-            const extension = file.name.split('.').pop().toLowerCase();
-            
-            console.log(`File: ${file.name}, extension: ${extension}, size: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
-            
-            if (allowedExtensions.includes(extension)) {
-                // Проверка размера (максимум 50MB)
-                if (file.size > 50 * 1024 * 1024) {
-                    alert(`Файл ${file.name} слишком большой (максимум 50MB)`);
-                    continue;
-                }
-                validFiles.push(file);
-            } else {
-                invalidFiles.push(file.name);
-            }
-        }
-        
-        if (invalidFiles.length > 0) {
-            alert(`Неподдерживаемые форматы: ${invalidFiles.join(', ')}\n\nПоддерживаются: JPG, PNG, GIF, BMP, TIFF, WEBP, HEIC, HEIF`);
-            if (validFiles.length === 0) return;
-        }
-        
-        if (validFiles.length === 0) {
-            alert('Нет допустимых файлов для загрузки');
-            return;
-        }
-        
-        const formData = new FormData();
-        formData.append('format', currentFormatIndex);
-        
-        for (let i = 0; i < validFiles.length; i++) {
-            formData.append('photos', validFiles[i]);
-        }
-        
-        const progressBar = document.getElementById('uploadProgress');
-        const progressBarInner = progressBar.querySelector('.progress-bar');
-        progressBar.style.display = 'block';
-        progressBarInner.style.width = '0%';
-        progressBarInner.textContent = '0%';
-        
-        // Симулируем прогресс
-        let progress = 0;
-        const progressInterval = setInterval(() => {
-            if (progress < 90) {
-                progress += 10;
-                progressBarInner.style.width = progress + '%';
-                progressBarInner.textContent = progress + '%';
-            }
-        }, 200);
-        
-        fetch('/upload_photos', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => {
-            clearInterval(progressInterval);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            progressBarInner.style.width = '100%';
-            progressBarInner.textContent = '100%';
-            
-            setTimeout(() => {
-                progressBar.style.display = 'none';
-            }, 1000);
-            
-            if (data.success) {
-                if (!uploadedFiles[currentFormatIndex]) {
-                    uploadedFiles[currentFormatIndex] = [];
-                }
-                uploadedFiles[currentFormatIndex] = uploadedFiles[currentFormatIndex].concat(data.files);
-                
-                // Обновляем счетчик
-                const photoCountSpan = document.getElementById(`photo-count-${currentFormatIndex}`);
-                if (photoCountSpan) {
-                    photoCountSpan.textContent = `${uploadedFiles[currentFormatIndex].length} фото`;
-                }
-                
-                // Показываем список загруженных
-                displayUploadedFiles(currentFormatIndex);
-                
-                // Показываем сообщение об успехе
-                if (data.files.length > 0) {
-                    const successMsg = document.createElement('div');
-                    successMsg.className = 'alert alert-success alert-dismissible fade show mt-2';
-                    successMsg.innerHTML = `
-                        Успешно загружено ${data.files.length} файлов
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    `;
-                    document.getElementById('uploadedFilesList').insertAdjacentElement('beforebegin', successMsg);
-                    
-                    setTimeout(() => {
-                        successMsg.remove();
-                    }, 3000);
-                }
-            }
-            
-            if (data.errors && data.errors.length > 0) {
-                console.error('Upload errors:', data.errors);
-                alert('Ошибки загрузки:\n' + data.errors.join('\n'));
-            }
-        })
-        .catch(error => {
-            clearInterval(progressInterval);
-            console.error('Error uploading files:', error);
-            alert('Ошибка загрузки файлов. Пожалуйста, попробуйте еще раз.\n\n' + error.message);
-            progressBar.style.display = 'none';
-        });
+    // Замените функцию handleFiles на эту:
+function handleFiles(files) {
+    if (!files || files.length === 0) {
+        console.log('No files selected');
+        return;
     }
     
+    console.log(`Processing ${files.length} files for format ${currentFormatIndex}`);
+    
+    // Разрешенные форматы
+    const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'tiff', 'webp', 'heic', 'heif'];
+    const validFiles = [];
+    const invalidFiles = [];
+    
+    // Проверка общего количества (максимум 100)
+    const currentCount = uploadedFiles[currentFormatIndex] ? uploadedFiles[currentFormatIndex].length : 0;
+    if (currentCount + files.length > 100) {
+        alert(`Максимум 100 фото на заказ. У вас уже ${currentCount} фото.`);
+        return;
+    }
+    
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const extension = file.name.split('.').pop().toLowerCase();
+        
+        if (allowedExtensions.includes(extension)) {
+            if (file.size > 50 * 1024 * 1024) {
+                alert(`Файл ${file.name} слишком большой (максимум 50MB)`);
+                continue;
+            }
+            validFiles.push(file);
+        } else {
+            invalidFiles.push(file.name);
+        }
+    }
+    
+    if (invalidFiles.length > 0) {
+        alert(`Неподдерживаемые форматы: ${invalidFiles.join(', ')}`);
+        if (validFiles.length === 0) return;
+    }
+    
+    if (validFiles.length === 0) return;
+    
+    const formData = new FormData();
+    formData.append('format', currentFormatIndex);
+    
+    for (let i = 0; i < validFiles.length; i++) {
+        formData.append('photos', validFiles[i]);
+    }
+    
+    const progressBar = document.getElementById('uploadProgress');
+    const progressBarInner = progressBar.querySelector('.progress-bar');
+    progressBar.style.display = 'block';
+    progressBarInner.style.width = '0%';
+    progressBarInner.textContent = '0%';
+    
+    fetch('/upload_photos', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        progressBarInner.style.width = '100%';
+        progressBarInner.textContent = '100%';
+        
+        setTimeout(() => {
+            progressBar.style.display = 'none';
+        }, 1000);
+        
+        if (data.success) {
+            if (!uploadedFiles[currentFormatIndex]) {
+                uploadedFiles[currentFormatIndex] = [];
+            }
+            uploadedFiles[currentFormatIndex] = uploadedFiles[currentFormatIndex].concat(data.files);
+            
+            // Обновляем счетчик
+            const photoCountSpan = document.getElementById(`photo-count-${currentFormatIndex}`);
+            if (photoCountSpan) {
+                photoCountSpan.textContent = `${uploadedFiles[currentFormatIndex].length} фото`;
+            }
+            
+            displayUploadedFiles(currentFormatIndex);
+            
+            if (data.files.length > 0) {
+                const successMsg = document.createElement('div');
+                successMsg.className = 'alert alert-success alert-dismissible fade show mt-2';
+                successMsg.innerHTML = `
+                    Успешно загружено ${data.files.length} файлов
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                const listElement = document.getElementById('uploadedFilesList');
+                if (listElement) {
+                    listElement.insertAdjacentElement('beforebegin', successMsg);
+                    setTimeout(() => successMsg.remove(), 3000);
+                }
+            }
+        }
+        
+        if (data.errors && data.errors.length > 0) {
+            console.error('Upload errors:', data.errors);
+            alert('Ошибки загрузки:\n' + data.errors.join('\n'));
+        }
+    })
+    .catch(error => {
+        console.error('Error uploading files:', error);
+        alert('Ошибка загрузки файлов. Пожалуйста, попробуйте еще раз.');
+        progressBar.style.display = 'none';
+    });
+}
     // Инициализация обработчиков загрузки
     if (uploadArea) {
         // Клик по области загрузки

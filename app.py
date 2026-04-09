@@ -1,6 +1,5 @@
 import os
 import zipfile
-from datetime import datetime, timedelta
 from io import BytesIO
 from PIL import Image
 import pillow_heif
@@ -21,6 +20,8 @@ import uuid
 import logging
 import time
 import tempfile
+import json
+from datetime import datetime, timedelta
 
 # Настройка логирования
 logging.basicConfig(level=logging.DEBUG)
@@ -31,14 +32,19 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-here-change-in-production'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB
+
 app.config['ALLOWED_EXTENSIONS'] = {
     'png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff', 'webp', 'heic', 'heif'
 }
 
+app.config['SESSION_TYPE'] = 'filesystem'
+app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB
+app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['TEMP_FOLDER'] = 'temp_uploads'
+
 # Создание папок
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+os.makedirs(app.config['TEMP_FOLDER'], exist_ok=True)
 os.makedirs(os.path.join('instance'), exist_ok=True)
 
 # Инициализация расширений
@@ -146,6 +152,16 @@ class SiteContent(db.Model):
     key = db.Column(db.String(50), unique=True, nullable=False)
     value = db.Column(db.Text)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+
+class TempUpload(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    session_id = db.Column(db.String(100), nullable=False)
+    original_filename = db.Column(db.String(255), nullable=False)
+    saved_filename = db.Column(db.String(255), nullable=False)
+    file_size = db.Column(db.Integer)
+    file_format = db.Column(db.String(50))
+    format_index = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.now)
 
 # Вспомогательные функции
 def allowed_file(filename):
@@ -275,48 +291,104 @@ def convert_to_jpg_bytes(image_path, quality=95):
         return None
 
 def create_zip_from_photos(order_id):
-    """Создает ZIP архив с фотографиями заказа, все фото конвертируются в JPG"""
+    """Создает ZIP архив с фотографиями заказа, сортируя по папкам форматов"""
     order = Order.query.get_or_404(order_id)
     zip_buffer = BytesIO()
     
+    # Словарь для сопоставления индекса формата с его названием
+    format_names = {
+        '0': '10x15',
+        '1': '10x10', 
+        '2': '9x13',
+        '3': 'polaroid_10x12',
+        '4': 'fuji_7x10',
+        '5': 'minipolaroid_7x10',
+        '6': '5x15',
+        'other': 'other_formats'
+    }
+    
     with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        # Группируем фото по форматам
+        photos_by_format = {}
+        
         for photo in order.photos:
-            photo_path = os.path.join(app.config['UPLOAD_FOLDER'], photo.saved_filename)
+            # Получаем название формата
+            format_key = photo.format if photo.format else 'other'
             
-            if os.path.exists(photo_path):
-                try:
-                    # Получаем имя файла без расширения
-                    original_name = os.path.splitext(photo.original_filename)[0]
-                    # Очищаем имя файла от недопустимых символов
-                    original_name = secure_filename(original_name)
-                    # Добавляем расширение .jpg
-                    new_filename = f"{original_name}.jpg"
-                    
-                    # Если имя слишком длинное, укорачиваем
-                    if len(new_filename) > 200:
-                        new_filename = f"{original_name[:150]}.jpg"
-                    
-                    # Конвертируем изображение в JPG байты
-                    jpg_bytes = convert_to_jpg_bytes(photo_path)
-                    
-                    if jpg_bytes:
-                        # Добавляем конвертированное изображение в архив
-                        zip_file.writestr(new_filename, jpg_bytes.getvalue())
-                        logger.debug(f"Added {new_filename} to zip")
-                    else:
-                        # Если конвертация не удалась, пробуем добавить оригинальный файл
-                        logger.warning(f"Failed to convert {photo.original_filename}, adding original")
-                        zip_file.write(photo_path, photo.original_filename)
-                        
-                except Exception as e:
-                    logger.error(f"Error processing photo {photo.original_filename}: {e}")
-                    # В случае ошибки добавляем оригинальный файл
-                    try:
-                        zip_file.write(photo_path, photo.original_filename)
-                    except:
-                        logger.error(f"Failed to add original file {photo.original_filename}")
+            # Пытаемся получить человекочитаемое название
+            if format_key.isdigit():
+                format_name = format_names.get(format_key, f'format_{format_key}')
             else:
-                logger.warning(f"Photo file not found: {photo_path}")
+                format_name = format_names.get(format_key, format_key)
+            
+            if format_name not in photos_by_format:
+                photos_by_format[format_name] = []
+            photos_by_format[format_name].append(photo)
+        
+        # Также группируем по форматам из заказа (OrderItem)
+        # Это нужно для соответствия между фото и форматами
+        format_mapping = {}
+        for idx, item in enumerate(order.items):
+            format_key = str(idx)
+            if item.format_name == '10x15':
+                format_mapping[format_key] = '10x15'
+            elif item.format_name == '10x10':
+                format_mapping[format_key] = '10x10'
+            elif item.format_name == '9x13':
+                format_mapping[format_key] = '9x13'
+            elif item.format_name == 'polaroid-10x12':
+                format_mapping[format_key] = 'polaroid_10x12'
+            elif item.format_name == 'fuji-7x10':
+                format_mapping[format_key] = 'fuji_7x10'
+            elif item.format_name == 'minipolaroid-7x10':
+                format_mapping[format_key] = 'minipolaroid_7x10'
+            elif item.format_name == '5x15':
+                format_mapping[format_key] = '5x15'
+            else:
+                format_mapping[format_key] = 'other_formats'
+        
+        # Создаем папки и добавляем файлы
+        for format_name, photos in photos_by_format.items():
+            # Создаем папку для формата
+            for photo in photos:
+                photo_path = os.path.join(app.config['UPLOAD_FOLDER'], photo.saved_filename)
+                
+                if os.path.exists(photo_path):
+                    try:
+                        # Получаем имя файла без расширения
+                        original_name = os.path.splitext(photo.original_filename)[0]
+                        # Очищаем имя файла от недопустимых символов
+                        original_name = secure_filename(original_name)
+                        # Добавляем расширение .jpg
+                        new_filename = f"{original_name}.jpg"
+                        
+                        # Если имя слишком длинное, укорачиваем
+                        if len(new_filename) > 200:
+                            new_filename = f"{original_name[:150]}.jpg"
+                        
+                        # Конвертируем изображение в JPG байты
+                        jpg_bytes = convert_to_jpg_bytes(photo_path)
+                        
+                        if jpg_bytes:
+                            # Добавляем в архив с путем к папке
+                            archive_path = f"{format_name}/{new_filename}"
+                            zip_file.writestr(archive_path, jpg_bytes.getvalue())
+                            logger.debug(f"Added {archive_path} to zip")
+                        else:
+                            # Если конвертация не удалась, пробуем добавить оригинальный файл
+                            logger.warning(f"Failed to convert {photo.original_filename}, adding original")
+                            archive_path = f"{format_name}/{photo.original_filename}"
+                            zip_file.write(photo_path, archive_path)
+                            
+                    except Exception as e:
+                        logger.error(f"Error processing photo {photo.original_filename}: {e}")
+                        try:
+                            archive_path = f"{format_name}/{photo.original_filename}"
+                            zip_file.write(photo_path, archive_path)
+                        except:
+                            logger.error(f"Failed to add original file {photo.original_filename}")
+                else:
+                    logger.warning(f"Photo file not found: {photo_path}")
     
     zip_buffer.seek(0)
     return zip_buffer
@@ -513,14 +585,14 @@ def create_order():
         delivery_details['city'] = request.form.get('city')
         delivery_details['address'] = request.form.get('delivery_address')
     
-    order.delivery_details = str(delivery_details)
+    order.delivery_details = json.dumps(delivery_details)
     
     # Обработка позиций заказа
     formats = request.form.getlist('format[]')
     quantities = request.form.getlist('quantity[]')
     
     total = 0
-    for fmt, qty in zip(formats, quantities):
+    for idx, (fmt, qty) in enumerate(zip(formats, quantities)):
         if not fmt or not qty:
             continue
         
@@ -530,20 +602,14 @@ def create_order():
         # Определение цены по формату
         if fmt == '10x15':
             price = 0.35
-        elif fmt == '10x10':
+        elif fmt in ['10x10', '9x13']:
             price = 0.40
-        elif fmt == '9x13':
+        elif fmt in ['polaroid-10x12', 'fuji-7x10', '5x15', 'minipolaroid-7x10']:
+            price = 0.25
+        elif 'до 10x15' in fmt.lower():
             price = 0.40
-        elif fmt in ['polaroid-10x12', 'fuji-7x10', '5x15']:
-            price = 0.25
-        elif fmt == 'minipolaroid-7x10':
-            price = 0.25
         else:
-            # Другой формат
-            if 'до 10x15' in fmt.lower():
-                price = 0.40
-            else:
-                price = 0.25
+            price = 0.25
         
         subtotal = price * qty
         total += subtotal
@@ -567,27 +633,34 @@ def create_order():
     db.session.add(order)
     db.session.commit()
     
-    # Обработка загруженных фотографий
-    uploaded_files = session.get('uploaded_files', [])
-    for file_info in uploaded_files:
-        saved_filename = file_info['saved_filename']
-        original_filename = file_info['original_filename']
-        file_size = file_info['size']
-        file_format = file_info.get('format', 'unknown')
+    # Обработка загруженных фотографий из временного хранилища
+    session_id = session.get('temp_session_id')
+    if session_id:
+        temp_uploads = TempUpload.query.filter_by(session_id=session_id).all()
         
-        photo = OrderPhoto(
-            order_id=order.id,
-            original_filename=original_filename,
-            saved_filename=saved_filename,
-            file_size=file_size,
-            format=file_format,
-            file_path=os.path.join(app.config['UPLOAD_FOLDER'], saved_filename)
-        )
-        db.session.add(photo)
-    
-    # Очистка сессии
-    session.pop('uploaded_files', None)
-    db.session.commit()
+        for temp_upload in temp_uploads:
+            # Перемещаем файл из временной папки в постоянную
+            old_path = os.path.join(app.config['UPLOAD_FOLDER'], temp_upload.saved_filename)
+            
+            # Проверяем, что файл существует
+            if os.path.exists(old_path):
+                photo = OrderPhoto(
+                    order_id=order.id,
+                    original_filename=temp_upload.original_filename,
+                    saved_filename=temp_upload.saved_filename,
+                    file_size=temp_upload.file_size,
+                    format=str(temp_upload.format_index),
+                    file_path=old_path
+                )
+                db.session.add(photo)
+            
+            # Удаляем запись из временных
+            db.session.delete(temp_upload)
+        
+        db.session.commit()
+        
+        # Очищаем сессию
+        session.pop('temp_session_id', None)
     
     flash(f'Заказ #{order.order_number} успешно создан! Вы можете редактировать его в течение 30 минут.', 'success')
     return redirect(url_for('order_success', order_id=order.id))
@@ -615,18 +688,23 @@ def track_order(order_number):
 @app.route('/upload_photos', methods=['POST'])
 @login_required
 def upload_photos():
-    """Загрузка фотографий через AJAX с улучшенной обработкой HEIC"""
+    """Загрузка фотографий через AJAX с сохранением во временную папку"""
     if 'photos' not in request.files:
         return jsonify({'error': 'No files uploaded'}), 400
     
     files = request.files.getlist('photos')
-    format_name = request.form.get('format', 'unknown')
+    format_index = request.form.get('format', '0')
     
-    uploaded_files = session.get('uploaded_files', [])
+    # Получаем или создаем session_id для временных файлов
+    session_id = session.get('temp_session_id')
+    if not session_id:
+        session_id = uuid.uuid4().hex
+        session['temp_session_id'] = session_id
     
-    # Проверка количества
-    if len(uploaded_files) + len(files) > 50:
-        return jsonify({'error': 'Максимум 50 файлов за заказ'}), 400
+    # Проверяем количество уже загруженных файлов
+    existing_count = TempUpload.query.filter_by(session_id=session_id).count()
+    if existing_count + len(files) > 100:  # Максимум 100 файлов
+        return jsonify({'error': 'Максимум 100 файлов за заказ'}), 400
     
     saved_files = []
     errors = []
@@ -635,88 +713,95 @@ def upload_photos():
         if file and file.filename:
             try:
                 original_filename = file.filename
-                # Получаем расширение
                 original_ext = original_filename.rsplit('.', 1)[1].lower() if '.' in original_filename else ''
                 
-                print(f"Processing file: {original_filename}, extension: {original_ext}, size: {file.content_length}")
-                
-                # Генерируем уникальное имя для сохранения
+                # Генерируем уникальное имя
                 unique_id = uuid.uuid4().hex
                 temp_filename = f"temp_{unique_id}.{original_ext}"
-                temp_path = os.path.join(app.config['UPLOAD_FOLDER'], temp_filename)
+                temp_path = os.path.join(app.config['TEMP_FOLDER'], temp_filename)
                 
                 # Сохраняем временный файл
                 file.save(temp_path)
-                print(f"Saved temp file: {temp_path}, size: {os.path.getsize(temp_path)}")
                 
-                # Проверяем, что файл сохранен
                 if not os.path.exists(temp_path) or os.path.getsize(temp_path) == 0:
                     errors.append(f'Ошибка сохранения файла {original_filename}')
                     continue
                 
-                # Генерируем имя для конечного JPG файла
+                # Конвертируем в JPG
                 final_filename = f"{unique_id}.jpg"
                 final_path = os.path.join(app.config['UPLOAD_FOLDER'], final_filename)
                 
-                # Конвертируем в JPG
                 if convert_to_jpg(temp_path, final_path):
                     # Удаляем временный файл
                     if os.path.exists(temp_path):
                         os.remove(temp_path)
                     
-                    # Проверяем, что конечный файл создан
                     if os.path.exists(final_path) and os.path.getsize(final_path) > 0:
-                        file_info = {
+                        # Сохраняем в базу данных временных загрузок
+                        temp_upload = TempUpload(
+                            session_id=session_id,
+                            original_filename=original_filename,
+                            saved_filename=final_filename,
+                            file_size=os.path.getsize(final_path),
+                            file_format=format_index,
+                            format_index=int(format_index)
+                        )
+                        db.session.add(temp_upload)
+                        db.session.commit()
+                        
+                        saved_files.append({
                             'original_filename': original_filename,
                             'saved_filename': final_filename,
                             'size': os.path.getsize(final_path),
-                            'format': format_name
-                        }
-                        uploaded_files.append(file_info)
-                        saved_files.append(file_info)
-                        print(f"Successfully processed file: {original_filename}")
+                            'format': format_index
+                        })
                     else:
-                        errors.append(f'Ошибка сохранения конвертированного файла {original_filename}')
+                        errors.append(f'Ошибка конвертации файла {original_filename}')
                 else:
                     errors.append(f'Ошибка конвертации файла {original_filename}')
                     if os.path.exists(temp_path):
                         os.remove(temp_path)
                         
             except Exception as e:
-                print(f"Error processing file {file.filename}: {str(e)}")
-                import traceback
-                traceback.print_exc()
-                errors.append(f'Ошибка обработки файла {file.filename}: {str(e)}')
-        else:
-            errors.append(f'Пустой файл: {file.filename if hasattr(file, "filename") else "unknown"}')
+                logger.error(f"Error processing file {file.filename}: {str(e)}")
+                errors.append(f'Ошибка обработки файла {file.filename}')
     
-    session['uploaded_files'] = uploaded_files
+    # Получаем общее количество файлов для этого формата
+    total_count = TempUpload.query.filter_by(session_id=session_id, format_index=int(format_index)).count()
     
-    response = {
+    return jsonify({
         'success': len(saved_files) > 0,
         'files': saved_files,
-        'total': len(uploaded_files),
+        'total': total_count,
         'errors': errors
-    }
-    
-    return jsonify(response)
+    })
 
 @app.route('/delete_upload/<filename>', methods=['POST'])
 @login_required
 def delete_upload(filename):
     """Удаление загруженного файла"""
-    uploaded_files = session.get('uploaded_files', [])
+    session_id = session.get('temp_session_id')
+    if not session_id:
+        return jsonify({'error': 'Session not found'}), 404
     
-    for i, file_info in enumerate(uploaded_files):
-        if file_info['saved_filename'] == filename:
-            # Удаляем файл
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            if os.path.exists(filepath):
-                os.remove(filepath)
-            
-            uploaded_files.pop(i)
-            session['uploaded_files'] = uploaded_files
-            return jsonify({'success': True})
+    temp_upload = TempUpload.query.filter_by(
+        session_id=session_id, 
+        saved_filename=filename
+    ).first()
+    
+    if temp_upload:
+        # Удаляем файл
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        if os.path.exists(filepath):
+            os.remove(filepath)
+        
+        db.session.delete(temp_upload)
+        db.session.commit()
+        
+        # Получаем обновленное количество
+        remaining = TempUpload.query.filter_by(session_id=session_id).count()
+        
+        return jsonify({'success': True, 'total': remaining})
     
     return jsonify({'error': 'File not found'}), 404
 
@@ -867,7 +952,7 @@ def admin_lotteries():
         abort(403)
     
     lotteries = Lottery.query.order_by(Lottery.start_date.desc()).all()
-    return render_template('admin/lotteries.html', lotteries=lotteries, now=datetime.now())
+    return render_template('admin/lotteries.html', lotteries=lotteries, now=datetime.now)
 
 @app.route('/admin/review/<int:review_id>/approve', methods=['POST'])
 @login_required
@@ -905,7 +990,19 @@ def create_lottery():
     title = request.form.get('title')
     description = request.form.get('description')
     prize = request.form.get('prize')
-    end_date = datetime.strptime(request.form.get('end_date'), '%Y-%m-%d')
+    end_date_str = request.form.get('end_date')
+    
+    if not all([title, description, prize, end_date_str]):
+        flash('Заполните все поля', 'danger')
+        return redirect(url_for('admin_lotteries'))
+    
+    try:
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+        # Устанавливаем время окончания на конец дня
+        end_date = end_date.replace(hour=23, minute=59, second=59)
+    except ValueError:
+        flash('Неверный формат даты', 'danger')
+        return redirect(url_for('admin_lotteries'))
     
     lottery = Lottery(
         title=title,
