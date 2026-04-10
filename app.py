@@ -679,8 +679,8 @@ def track_order(order_number):
     order = Order.query.filter_by(order_number=order_number).first_or_404()
     
     tracking_urls = {
-        'belpost': f'https://www.belpost.by/tracking/{order.tracking_number}' if order.tracking_number else None,
-        'europost': f'https://europost.by/tracking/{order.tracking_number}' if order.tracking_number else None
+        'belpost': f'https://www.belpost.by/by/Otsleditotpravleniye?number={order.tracking_number}' if order.tracking_number else None,
+        'europost': f'https://evropochta.by/tracking/{order.tracking_number}' if order.tracking_number else None
     }
     
     return render_template('track_order.html', order=order, tracking_urls=tracking_urls)
