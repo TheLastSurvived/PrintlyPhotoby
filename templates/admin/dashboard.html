@@ -49,19 +49,25 @@
                     <div class="card-body">
                         <h5 class="card-title mb-3" style="color: var(--pink);">Управление</h5>
                         <div class="d-flex flex-wrap gap-2">
-                            <a href="{{ url_for('admin_orders') }}" class="btn" style="background-color: var(--cream);">
-                                <i class="bi bi-truck"></i> Заказы
-                            </a>
-                            <a href="{{ url_for('admin_reviews') }}" class="btn" style="background-color: var(--cream);">
-                                <i class="bi bi-star"></i> Отзывы
-                            </a>
-                            <a href="{{ url_for('admin_lotteries') }}" class="btn" style="background-color: var(--cream);">
-                                <i class="bi bi-gift"></i> Розыгрыши
-                            </a>
-                            <button type="button" class="btn" style="background-color: var(--cream);" data-bs-toggle="modal" data-bs-target="#editContentModal">
-                                <i class="bi bi-pencil"></i> Редактировать контент
-                            </button>
-                        </div>
+    <a href="{{ url_for('admin_orders') }}" class="btn" style="background-color: var(--cream);">
+        <i class="bi bi-truck"></i> Заказы
+    </a>
+    <a href="{{ url_for('admin_prices') }}" class="btn" style="background-color: var(--cream);">
+        <i class="bi bi-currency-dollar"></i> Цены
+    </a>
+    <a href="{{ url_for('admin_format_examples') }}" class="btn" style="background-color: var(--cream);">
+        <i class="bi bi-images"></i> Примеры форматов
+    </a>
+    <a href="{{ url_for('admin_reviews') }}" class="btn" style="background-color: var(--cream);">
+        <i class="bi bi-star"></i> Отзывы
+    </a>
+    <a href="{{ url_for('admin_lotteries') }}" class="btn" style="background-color: var(--cream);">
+        <i class="bi bi-gift"></i> Розыгрыши
+    </a>
+    <button type="button" class="btn" style="background-color: var(--cream);" data-bs-toggle="modal" data-bs-target="#editContentModal">
+        <i class="bi bi-pencil"></i> Редактировать контент
+    </button>
+</div>
                     </div>
                 </div>
             </div>

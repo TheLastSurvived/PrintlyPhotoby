@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}Управление примерами форматов{% endblock %}
+
+{% block content %}
+<section class="py-5 section-cream">
+    <div class="container">
+        <h2 class="section-title text-center">Примеры форматов</h2>
+        
+        <div class="mb-4 text-end">
+            <button type="button" class="btn" style="background-color: var(--pink); color: white;" data-bs-toggle="modal" data-bs-target="#createExampleModal">
+                <i class="bi bi-plus-circle"></i> Добавить пример
+            </button>
+        </div>
+        
+        <div class="row">
+            {% for example in examples %}
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <form action="{{ url_for('update_format_example', example_id=example.id) }}" method="POST" enctype="multipart/form-data">
+                            <div class="mb-2">
+                                <label class="form-label small">Название</label>
+                                <input type="text" class="form-control form-control-sm" name="title" value="{{ example.title }}" required>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small">Описание</label>
+                                <textarea class="form-control form-control-sm" name="description" rows="2">{{ example.description or '' }}</textarea>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small">Изображение</label>
+                                {% if example.image_url and example.image_url.startswith('static//uploads/examples/') %}
+                                    <div class="mb-2">
+                                        <img src="{{ example.image_url }}" alt="{{ example.title }}" style="max-height: 100px; max-width: 100%; border-radius: 5px;">
+                                    </div>
+                                {% endif %}
+                                <input type="file" class="form-control form-control-sm" name="image" accept="image/jpeg,image/png,image/gif,image/webp">
+                                <small class="text-muted">Оставьте пустым, чтобы не менять изображение</small>
+                            </div>
+                            <div class="mb-2">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" name="is_active" {% if example.is_active %}checked{% endif %}>
+                                    <label class="form-check-label small">Активен</label>
+                                </div>
+                            </div>
+                            <div class="d-flex gap-2 mt-3">
+                                <button type="submit" class="btn btn-sm btn-success">Сохранить</button>
+                                <button type="button" class="btn btn-sm btn-danger" onclick="if(confirm('Удалить пример?')) window.location.href='{{ url_for('delete_format_example', example_id=example.id) }}'">Удалить</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="col-12 text-center py-4">
+                <p>Нет примеров форматов. Добавьте первый!</p>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="mt-3">
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">← Назад</a>
+        </div>
+    </div>
+</section>
+
+<!-- Модальное окно создания примера -->
+<div class="modal fade" id="createExampleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Добавить пример формата</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('create_format_example') }}" method="POST" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Название</label>
+                        <input type="text" class="form-control" name="title" placeholder="например: 10x15, Polaroid" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Описание (необязательно)</label>
+                        <textarea class="form-control" name="description" rows="2" placeholder="Краткое описание формата"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Изображение</label>
+                        <input type="file" class="form-control" name="image" accept="image/jpeg,image/png,image/gif,image/webp" required>
+                        <small class="text-muted">Поддерживаются JPG, PNG, GIF, WEBP. Максимум 5MB</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Порядок сортировки</label>
+                        <input type="number" class="form-control" name="sort_order" value="99">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn" style="background-color: var(--pink); color: white;">Добавить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

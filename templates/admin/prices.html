@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Управление ценами{% endblock %}
+
+{% block content %}
+<section class="py-5 section-cream">
+    <div class="container">
+        <h2 class="section-title text-center">Управление ценами на печать</h2>
+        
+        <div class="mb-4 text-end">
+            <button type="button" class="btn" style="background-color: var(--pink); color: white;" data-bs-toggle="modal" data-bs-target="#createPriceModal">
+                <i class="bi bi-plus-circle"></i> Добавить формат
+            </button>
+        </div>
+        
+        <div class="card form-card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Ключ</th>
+                                <th>Название</th>
+                                <th>Цена (BYN)</th>
+                                <th>Мин. количество</th>
+                                <th>Статус</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for price in prices %}
+                            <tr>
+                                <td>{{ price.format_key }}</td>
+                                <td>{{ price.format_name }}</td>
+                                <td>
+                                    <form action="{{ url_for('update_price', price_id=price.id) }}" method="POST" class="d-flex gap-2">
+                                        <input type="number" step="0.01" class="form-control form-control-sm" name="price" value="{{ price.price }}" style="width: 80px;" required>
+                                        <input type="number" class="form-control form-control-sm" name="min_quantity" value="{{ price.min_quantity }}" style="width: 80px;">
+                                        <div class="form-check form-switch mt-2">
+                                            <input class="form-check-input" type="checkbox" name="is_active" {% if price.is_active %}checked{% endif %}>
+                                        </div>
+                                        <button type="submit" class="btn btn-sm btn-success">💾</button>
+                                    </form>
+                                </td>
+                                <td>{{ price.min_quantity }} шт</td>
+                                <td>
+                                    {% if price.is_active %}
+                                        <span class="badge bg-success">Активен</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Неактивен</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <form action="{{ url_for('delete_price', price_id=price.id) }}" method="POST" onsubmit="return confirm('Удалить формат?');" style="display: inline;">
+                                        <button type="submit" class="btn btn-sm btn-danger">🗑️</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center py-4">Нет данных</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-3">
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">← Назад</a>
+        </div>
+    </div>
+</section>
+
+<!-- Модальное окно создания формата -->
+<div class="modal fade" id="createPriceModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Добавить новый формат</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('create_price') }}" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Ключ формата (уникальный)</label>
+                        <input type="text" class="form-control" name="format_key" placeholder="например: 15x20" required>
+                        <small class="text-muted">Используется в коде</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Название для отображения</label>
+                        <input type="text" class="form-control" name="format_name" placeholder="например: 15 x 20 см" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Цена за штуку (BYN)</label>
+                        <input type="number" step="0.01" class="form-control" name="price" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Минимальное количество</label>
+                        <input type="number" class="form-control" name="min_quantity" value="0">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Порядок сортировки</label>
+                        <input type="number" class="form-control" name="sort_order" value="99">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn" style="background-color: var(--pink); color: white;">Добавить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

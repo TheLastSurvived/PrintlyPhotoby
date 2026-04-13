@@ -32,6 +32,8 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-here-change-in-production'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['EXAMPLES_FOLDER'] = 'static/uploads/examples'
+os.makedirs(app.config['EXAMPLES_FOLDER'], exist_ok=True)
 
 app.config['ALLOWED_EXTENSIONS'] = {
     'png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff', 'webp', 'heic', 'heif'
@@ -162,6 +164,23 @@ class TempUpload(db.Model):
     file_format = db.Column(db.String(50))
     format_index = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.now)
+
+class Price(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    format_key = db.Column(db.String(50), unique=True, nullable=False)  # 10x15, 10x10, etc.
+    format_name = db.Column(db.String(100), nullable=False)  # Отображаемое имя
+    price = db.Column(db.Float, nullable=False)  # Цена за штуку
+    min_quantity = db.Column(db.Integer, nullable=False)  # Минимальное количество
+    is_active = db.Column(db.Boolean, default=True)
+    sort_order = db.Column(db.Integer, default=0)
+    
+class FormatExample(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(100), nullable=False)  # 10x15, Polaroid, etc.
+    description = db.Column(db.String(200))  # Описание формата
+    image_url = db.Column(db.String(500))  # URL изображения-примера
+    sort_order = db.Column(db.Integer, default=0)
+    is_active = db.Column(db.Boolean, default=True)
 
 # Вспомогательные функции
 def allowed_file(filename):
@@ -414,12 +433,55 @@ with app.app_context():
         db.session.add(admin)
         db.session.commit()
     
+    # Создание начальных цен
+    default_prices = [
+        ('10x15', '10 x 15 см', 0.35, 26, 1),
+        ('10x10', '10 x 10 см', 0.40, 50, 2),
+        ('9x13', '9 x 13 см', 0.40, 26, 3),
+        ('polaroid-10x12', 'Polaroid 10 x 12 см', 0.25, 40, 4),
+        ('fuji-7x10', 'Fuji / Instax 7 x 10 см', 0.25, 40, 5),
+        ('minipolaroid-7x10', 'MiniPolaroid 7 x 10 см', 0.25, 50, 6),
+        ('5x15', 'Фотополоска 5 x 15 см', 0.25, 40, 7),
+        ('other-up-to-10x15', 'Другой формат (до 10x15)', 0.40, 0, 8),
+        ('other-up-to-7x10', 'Другой формат (до 7x10)', 0.25, 0, 9),
+    ]
+    
+    for format_key, format_name, price, min_qty, sort_order in default_prices:
+        if not Price.query.filter_by(format_key=format_key).first():
+            price_entry = Price(
+                format_key=format_key,
+                format_name=format_name,
+                price=price,
+                min_quantity=min_qty,
+                sort_order=sort_order,
+                is_active=True
+            )
+            db.session.add(price_entry)
+    
+    # Создание начальных примеров форматов
+    default_examples = [
+        ('10x15', 'Классический формат для семейных фото', '/static/images/example-10x15.jpg', 1),
+        ('10x10', 'Квадратный формат, отлично подходит для Instagram', '/static/images/example-10x10.jpg', 2),
+        ('Polaroid', 'Стильный формат с эффектом полароид', '/static/images/example-polaroid.jpg', 3),
+        ('Instax', 'Компактный формат как мгновенные фото', '/static/images/example-instax.jpg', 4),
+    ]
+    
+    for title, desc, img_url, sort_order in default_examples:
+        if not FormatExample.query.filter_by(title=title).first():
+            example = FormatExample(
+                title=title,
+                description=desc,
+                image_url=img_url,
+                sort_order=sort_order,
+                is_active=True
+            )
+            db.session.add(example)
+    
     # Создание начального контента
     default_content = {
-        'important_info': '✅ Минимальный заказ: 10 рублей\n✅ Бумага: только глянцевая 230 г/м²\n✅ Скидка: от 200 штук -5% на все форматы\n✅ Любой другой формат до 10x15 — 0.40 BYN\n✅ Любой формат до 7x10 — 0.25 BYN',
+        'important_info': '✅ Минимальный заказ: 10 рублей\n✅ Бумага: только глянцевая 230 г/м²\n✅ Скидка: от 200 штук -5% на все форматы',
         'privacy_policy': '''<h6>1. Общие положения</h6>
 <p>Настоящая политика обработки персональных данных составлена в соответствии с требованиями Закона Республики Беларусь от 7 мая 2021 г. № 99-З «О защите персональных данных»...</p>''',
-        'format_examples': 'Примеры форматов будут загружены...'
     }
     
     for key, value in default_content.items():
@@ -441,21 +503,32 @@ def index():
         # Получаем контент из базы данных
         important_info_obj = SiteContent.query.filter_by(key='important_info').first()
         privacy_policy_obj = SiteContent.query.filter_by(key='privacy_policy').first()
-        format_examples_obj = SiteContent.query.filter_by(key='format_examples').first()
         
-        # Преобразуем в значения или пустые строки
+        # Получаем цены
+        prices = Price.query.filter_by(is_active=True).order_by(Price.sort_order).all()
+        
+        # Получаем примеры форматов
+        format_examples = FormatExample.query.filter_by(is_active=True).order_by(FormatExample.sort_order).all()
+        
         important_info = important_info_obj.value if important_info_obj else ''
         privacy_policy = privacy_policy_obj.value if privacy_policy_obj else ''
-        format_examples = format_examples_obj.value if format_examples_obj else ''
-        
-        print(f"Debug - important_info: {important_info[:50]}...")  # для отладки
         
         return render_template('index.html', 
                              reviews=reviews, 
                              active_lottery=active_lottery,
                              important_info=important_info,
                              privacy_policy=privacy_policy,
+                             prices=prices,
                              format_examples=format_examples)
+    except Exception as e:
+        print(f"Error in index route: {e}")
+        return render_template('index.html', 
+                             reviews=[], 
+                             active_lottery=None,
+                             important_info='',
+                             privacy_policy='',
+                             prices=[],
+                             format_examples=[])
     except Exception as e:
         print(f"Error in index route: {e}")
         # Возвращаем шаблон с пустыми значениями в случае ошибки
@@ -591,25 +664,30 @@ def create_order():
     formats = request.form.getlist('format[]')
     quantities = request.form.getlist('quantity[]')
     
+    # Получаем актуальные цены из БД
+    prices_map = {}
+    for price_entry in Price.query.filter_by(is_active=True).all():
+        prices_map[price_entry.format_key] = {
+            'price': price_entry.price,
+            'min_qty': price_entry.min_quantity
+        }
+    
     total = 0
     for idx, (fmt, qty) in enumerate(zip(formats, quantities)):
         if not fmt or not qty:
             continue
         
         qty = int(qty)
-        price = 0
         
-        # Определение цены по формату
-        if fmt == '10x15':
-            price = 0.35
-        elif fmt in ['10x10', '9x13']:
-            price = 0.40
-        elif fmt in ['polaroid-10x12', 'fuji-7x10', '5x15', 'minipolaroid-7x10']:
-            price = 0.25
-        elif 'до 10x15' in fmt.lower():
-            price = 0.40
-        else:
-            price = 0.25
+        # Получаем цену из маппинга
+        price_data = prices_map.get(fmt, {'price': 0.35, 'min_qty': 0})
+        price = price_data['price']
+        
+        # Проверка минимального количества
+        min_qty = price_data['min_qty']
+        if min_qty > 0 and qty < min_qty:
+            flash(f'Для формата {fmt} минимальное количество - {min_qty} шт', 'danger')
+            return redirect(url_for('index'))
         
         subtotal = price * qty
         total += subtotal
@@ -639,10 +717,8 @@ def create_order():
         temp_uploads = TempUpload.query.filter_by(session_id=session_id).all()
         
         for temp_upload in temp_uploads:
-            # Перемещаем файл из временной папки в постоянную
             old_path = os.path.join(app.config['UPLOAD_FOLDER'], temp_upload.saved_filename)
             
-            # Проверяем, что файл существует
             if os.path.exists(old_path):
                 photo = OrderPhoto(
                     order_id=order.id,
@@ -654,12 +730,9 @@ def create_order():
                 )
                 db.session.add(photo)
             
-            # Удаляем запись из временных
             db.session.delete(temp_upload)
         
         db.session.commit()
-        
-        # Очищаем сессию
         session.pop('temp_session_id', None)
     
     flash(f'Заказ #{order.order_number} успешно создан! Вы можете редактировать его в течение 30 минут.', 'success')
@@ -703,13 +776,14 @@ def upload_photos():
     
     # Проверяем количество уже загруженных файлов
     existing_count = TempUpload.query.filter_by(session_id=session_id).count()
-    if existing_count + len(files) > 100:  # Максимум 100 файлов
+    if existing_count + len(files) > 100:
         return jsonify({'error': 'Максимум 100 файлов за заказ'}), 400
     
     saved_files = []
     errors = []
+    total_files = len(files)
     
-    for file in files:
+    for idx, file in enumerate(files):
         if file and file.filename:
             try:
                 original_filename = file.filename
@@ -737,7 +811,6 @@ def upload_photos():
                         os.remove(temp_path)
                     
                     if os.path.exists(final_path) and os.path.getsize(final_path) > 0:
-                        # Сохраняем в базу данных временных загрузок
                         temp_upload = TempUpload(
                             session_id=session_id,
                             original_filename=original_filename,
@@ -753,7 +826,8 @@ def upload_photos():
                             'original_filename': original_filename,
                             'saved_filename': final_filename,
                             'size': os.path.getsize(final_path),
-                            'format': format_index
+                            'format': format_index,
+                            'progress': int((idx + 1) / total_files * 100)
                         })
                     else:
                         errors.append(f'Ошибка конвертации файла {original_filename}')
@@ -766,7 +840,6 @@ def upload_photos():
                 logger.error(f"Error processing file {file.filename}: {str(e)}")
                 errors.append(f'Ошибка обработки файла {file.filename}')
     
-    # Получаем общее количество файлов для этого формата
     total_count = TempUpload.query.filter_by(session_id=session_id, format_index=int(format_index)).count()
     
     return jsonify({
@@ -1031,6 +1104,179 @@ def update_site_content(key):
     
     flash('Контент обновлен', 'success')
     return redirect(request.referrer or url_for('admin_dashboard'))
+
+
+@app.route('/admin/prices')
+@login_required
+def admin_prices():
+    if not current_user.is_admin:
+        abort(403)
+    
+    prices = Price.query.order_by(Price.sort_order).all()
+    return render_template('admin/prices.html', prices=prices)
+
+@app.route('/admin/price/update/<int:price_id>', methods=['POST'])
+@login_required
+def update_price(price_id):
+    if not current_user.is_admin:
+        abort(403)
+    
+    price_entry = Price.query.get_or_404(price_id)
+    price_entry.price = float(request.form.get('price'))
+    price_entry.min_quantity = int(request.form.get('min_quantity'))
+    price_entry.is_active = request.form.get('is_active') == 'on'
+    db.session.commit()
+    
+    flash('Цена обновлена', 'success')
+    return redirect(url_for('admin_prices'))
+
+@app.route('/admin/price/create', methods=['POST'])
+@login_required
+def create_price():
+    if not current_user.is_admin:
+        abort(403)
+    
+    price_entry = Price(
+        format_key=request.form.get('format_key'),
+        format_name=request.form.get('format_name'),
+        price=float(request.form.get('price')),
+        min_quantity=int(request.form.get('min_quantity')),
+        sort_order=int(request.form.get('sort_order', 99)),
+        is_active=True
+    )
+    db.session.add(price_entry)
+    db.session.commit()
+    
+    flash('Новый формат добавлен', 'success')
+    return redirect(url_for('admin_prices'))
+
+@app.route('/admin/price/delete/<int:price_id>', methods=['POST'])
+@login_required
+def delete_price(price_id):
+    if not current_user.is_admin:
+        abort(403)
+    
+    price_entry = Price.query.get_or_404(price_id)
+    db.session.delete(price_entry)
+    db.session.commit()
+    
+    flash('Формат удален', 'success')
+    return redirect(url_for('admin_prices'))
+
+# Управление примерами форматов
+@app.route('/admin/format-examples')
+@login_required
+def admin_format_examples():
+    if not current_user.is_admin:
+        abort(403)
+    
+    examples = FormatExample.query.order_by(FormatExample.sort_order).all()
+    return render_template('admin/format_examples.html', examples=examples)
+
+@app.route('/admin/format-example/update/<int:example_id>', methods=['POST'])
+@login_required
+def update_format_example(example_id):
+    if not current_user.is_admin:
+        abort(403)
+    
+    example = FormatExample.query.get_or_404(example_id)
+    example.title = request.form.get('title')
+    example.description = request.form.get('description')
+    example.is_active = request.form.get('is_active') == 'on'
+    
+    # Обработка загрузки изображения
+    if 'image' in request.files:
+        file = request.files['image']
+        if file and file.filename:
+            # Проверяем расширение
+            allowed_extensions = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
+            ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+            
+            if ext in allowed_extensions:
+                # Генерируем уникальное имя файла
+                unique_id = uuid.uuid4().hex[:8]
+                filename = secure_filename(f"{example.id}_{unique_id}.{ext}")
+                filepath = os.path.join(app.config['EXAMPLES_FOLDER'], filename)
+                
+                # Сохраняем файл
+                file.save(filepath)
+                
+                # Удаляем старое изображение если есть
+                if example.image_url:
+                    old_path = os.path.join('static', example.image_url.lstrip('/'))
+                    if os.path.exists(old_path):
+                        os.remove(old_path)
+                
+                # Обновляем URL
+                example.image_url = f'/uploads/examples/{filename}'
+    
+    db.session.commit()
+    flash('Пример формата обновлен', 'success')
+    return redirect(url_for('admin_format_examples'))
+
+@app.route('/admin/format-example/create', methods=['POST'])
+@login_required
+def create_format_example():
+    if not current_user.is_admin:
+        abort(403)
+    
+    title = request.form.get('title')
+    description = request.form.get('description')
+    sort_order = int(request.form.get('sort_order', 99))
+    
+    # Создаем запись временно, чтобы получить ID
+    example = FormatExample(
+        title=title,
+        description=description,
+        sort_order=sort_order,
+        is_active=True,
+        image_url=''  # Временное значение
+    )
+    db.session.add(example)
+    db.session.commit()
+    
+    # Обработка загрузки изображения
+    if 'image' in request.files:
+        file = request.files['image']
+        if file and file.filename:
+            allowed_extensions = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
+            ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+            
+            if ext in allowed_extensions:
+                # Генерируем уникальное имя файла
+                unique_id = uuid.uuid4().hex[:8]
+                filename = secure_filename(f"{example.id}_{unique_id}.{ext}")
+                filepath = os.path.join(app.config['EXAMPLES_FOLDER'], filename)
+                
+                # Сохраняем файл
+                file.save(filepath)
+                
+                # Обновляем URL
+                example.image_url = f'/uploads/examples/{filename}'
+                db.session.commit()
+    
+    flash('Пример формата добавлен', 'success')
+    return redirect(url_for('admin_format_examples'))
+
+@app.route('/admin/format-example/delete/<int:example_id>')
+@login_required
+def delete_format_example(example_id):
+    if not current_user.is_admin:
+        abort(403)
+    
+    example = FormatExample.query.get_or_404(example_id)
+    
+    # Удаляем файл изображения
+    if example.image_url:
+        filepath = os.path.join('static', example.image_url.lstrip('/'))
+        if os.path.exists(filepath):
+            os.remove(filepath)
+    
+    db.session.delete(example)
+    db.session.commit()
+    
+    flash('Пример удален', 'success')
+    return redirect(url_for('admin_format_examples'))
 
 if __name__ == '__main__':
     app.run(debug=True)
