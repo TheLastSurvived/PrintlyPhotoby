@@ -63,7 +63,7 @@
                             <p class="mb-0">
                                 <strong>{{ order.tracking_number }}</strong>
                                 {% if order.delivery_method == 'belpost' %}
-                                    <a href="https://www.belpost.by/tracking/{{ order.tracking_number }}" target="_blank" class="ms-2">Отследить</a>
+                                    <a href="https://www.belpost.by/by/Otsleditotpravleniye?number={{ order.tracking_number }}" target="_blank" class="ms-2">Отследить</a>
                                 {% elif order.delivery_method == 'europost' %}
                                     <a href="https://europost.by/tracking/{{ order.tracking_number }}" target="_blank" class="ms-2">Отследить</a>
                                 {% endif %}
@@ -157,7 +157,7 @@
                 {% endif %}
                 
                 {% if order.tracking_number and order.status in ['shipped', 'completed'] %}
-                <a href="https://www.belpost.by/tracking/{{ order.tracking_number }}" 
+                <a href="https://www.belpost.by/by/Otsleditotpravleniye?number={{ order.tracking_number }}" 
                    target="_blank" class="btn btn-info">
                     <i class="bi bi-truck"></i> Отследить
                 </a>

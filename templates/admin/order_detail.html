@@ -6,89 +6,216 @@
 <section class="py-5 section-cream">
     <div class="container">
         <div class="row">
-            <div class="col-md-8 mx-auto">
+            <div class="col-md-10 mx-auto">
                 <div class="card form-card p-4">
                     <h2 class="mb-4" style="color: var(--pink);">Заказ #{{ order.order_number }}</h2>
                     
+                    <!-- Информация о заказе -->
                     <div class="row mb-4">
                         <div class="col-md-6">
-                            <p><strong>Статус:</strong> 
-                                {% if order.status == 'pending' %}
-                                    <span class="badge bg-warning">Ожидает</span>
-                                {% elif order.status == 'printing' %}
-                                    <span class="badge bg-info">В печати</span>
-                                {% elif order.status == 'ready' %}
-                                    <span class="badge bg-success">Готов</span>
-                                {% elif order.status == 'shipped' %}
-                                    <span class="badge bg-primary">Отправлен</span>
-                                {% elif order.status == 'completed' %}
-                                    <span class="badge bg-secondary">Завершен</span>
-                                {% elif order.status == 'cancelled' %}
-                                    <span class="badge bg-danger">Отменен</span>
+                            <div class="border rounded p-3 h-100">
+                                <h5 class="mb-3" style="color: var(--pink);">Информация о заказе</h5>
+                                <p><strong>Статус:</strong> 
+                                    {% if order.status == 'pending' %}
+                                        <span class="badge bg-warning">Ожидает</span>
+                                    {% elif order.status == 'printing' %}
+                                        <span class="badge bg-info">В печати</span>
+                                    {% elif order.status == 'ready' %}
+                                        <span class="badge bg-success">Готов</span>
+                                    {% elif order.status == 'shipped' %}
+                                        <span class="badge bg-primary">Отправлен</span>
+                                    {% elif order.status == 'completed' %}
+                                        <span class="badge bg-secondary">Завершен</span>
+                                    {% elif order.status == 'cancelled' %}
+                                        <span class="badge bg-danger">Отменен</span>
+                                    {% endif %}
+                                </p>
+                                <p><strong>Дата заказа:</strong> {{ order.created_at.strftime('%d.%m.%Y %H:%M') }}</p>
+                                <p><strong>Сумма заказа:</strong> <span class="fw-bold fs-5">{{ "%.2f"|format(order.total_amount) }} BYN</span></p>
+                                {% if order.notes %}
+                                    <p><strong>Примечания:</strong><br>{{ order.notes }}</p>
                                 {% endif %}
-                            </p>
-                            <p><strong>Дата:</strong> {{ order.created_at.strftime('%d.%m.%Y %H:%M') }}</p>
-                            <p><strong>Клиент:</strong> {{ order.recipient_name }}</p>
-                            <p><strong>Телефон:</strong> {{ order.phone }}</p>
+                            </div>
                         </div>
+                        
                         <div class="col-md-6">
-                            <p><strong>Способ доставки:</strong> 
-                                {% if order.delivery_method == 'belpost' %}
-                                    Белпочта
-                                {% else %}
-                                    Европочта
-                                {% endif %}
-                            </p>
-                            <p><strong>Сумма:</strong> {{ order.total_amount }} BYN</p>
-                            {% if order.tracking_number %}
-                                <p><strong>Трек-код:</strong> {{ order.tracking_number }}</p>
-                            {% endif %}
+                            <div class="border rounded p-3 h-100">
+                                <h5 class="mb-3" style="color: var(--pink);">Получатель</h5>
+                                <p><strong>ФИО:</strong> {{ order.recipient_name }}</p>
+                                <p><strong>Телефон:</strong> 
+                                    <a href="tel:{{ order.phone }}">{{ order.phone }}</a>
+                                    {% if order.user.phone != order.phone %}
+                                        <br><small class="text-muted">(телефон пользователя: {{ order.user.phone }})</small>
+                                    {% endif %}
+                                </p>
+                                <p><strong>Способ доставки:</strong> 
+                                    {% if order.delivery_method == 'belpost' %}
+                                        🇧🇾 Белпочта
+                                    {% else %}
+                                        📦 Европочта
+                                    {% endif %}
+                                </p>
+                            </div>
                         </div>
                     </div>
                     
-                    <h5 class="mb-3">Состав заказа</h5>
-                    <table class="table mb-4">
-                        <thead>
-                            <tr>
-                                <th>Формат</th>
-                                <th>Кол-во</th>
-                                <th>Цена</th>
-                                <th>Сумма</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for item in order.items %}
+                    <!-- Детали доставки -->
+                    <div class="border rounded p-3 mb-4">
+                        <h5 class="mb-3" style="color: var(--pink);">
+                            <i class="bi bi-geo-alt"></i> Адрес доставки
+                        </h5>
+                        {% set delivery = order.delivery_details|from_json if order.delivery_details else {} %}
+                        
+                        {% if order.delivery_method == 'belpost' %}
+                            <div class="row">
+                                <div class="col-md-6 mb-2">
+                                    <strong>Почтовый индекс:</strong><br>
+                                    <span class="text-primary">{{ delivery.index or '—' }}</span>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <strong>Область/Город:</strong><br>
+                                    <span>{{ delivery.address.split(',')[0] if delivery.address else '—' }}</span>
+                                </div>
+                                <div class="col-12 mb-2">
+                                    <strong>Адрес (улица, дом):</strong><br>
+                                    <span>{{ delivery.address or '—' }}</span>
+                                </div>
+                                <div class="col-12 mb-2">
+                                    <strong>Квартира:</strong><br>
+                                    <span>{{ delivery.apartment or '—' }}</span>
+                                </div>
+                                <div class="col-12 mt-2">
+                                    <strong>Полный адрес для отправки:</strong><br>
+                                    <code class="d-block p-2 bg-light rounded">
+                                        {{ delivery.index or '_____' }}, 
+                                        {{ delivery.address or '_____' }}
+                                        {% if delivery.apartment %}, {{ delivery.apartment }}{% endif %}
+                                    </code>
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="row">
+                                <div class="col-md-6 mb-2">
+                                    <strong>Номер отделения:</strong><br>
+                                    <span class="text-primary">{{ delivery.office_number or '—' }}</span>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <strong>Город:</strong><br>
+                                    <span>{{ delivery.city or '—' }}</span>
+                                </div>
+                                <div class="col-12 mb-2">
+                                    <strong>Адрес для курьерской доставки:</strong><br>
+                                    <span>{{ delivery.address or '—' }}</span>
+                                </div>
+                                <div class="col-12 mt-2">
+                                    <strong>Информация для отправки:</strong><br>
+                                    <code class="d-block p-2 bg-light rounded">
+                                        {% if delivery.office_number %}
+                                            Отделение Европочты №{{ delivery.office_number }}, г. {{ delivery.city or '_____' }}
+                                        {% elif delivery.address %}
+                                            Курьерская доставка: {{ delivery.address }}
+                                        {% else %}
+                                            Данные не заполнены
+                                        {% endif %}
+                                    </code>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Информация о пользователе -->
+                    <div class="border rounded p-3 mb-4">
+                        <h5 class="mb-3" style="color: var(--pink);">
+                            <i class="bi bi-person"></i> Информация о пользователе
+                        </h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>ID пользователя:</strong> {{ order.user.id }}</p>
+                                <p><strong>Телефон:</strong> {{ order.user.phone }}</p>
+                                {% if order.user.full_name %}
+                                    <p><strong>ФИО:</strong> {{ order.user.full_name }}</p>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Зарегистрирован:</strong> {{ order.user.created_at.strftime('%d.%m.%Y') }}</p>
+                                <p><strong>Всего заказов:</strong> {{ order.user.orders|length }}</p>
+                                <a href="#" class="btn btn-sm" style="background-color: var(--cream);" onclick="alert('Телефон для связи: {{ order.phone }}\nТелефон пользователя: {{ order.user.phone }}')">
+                                    <i class="bi bi-telephone"></i> Контакты
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Состав заказа -->
+                    <h5 class="mb-3" style="color: var(--pink);">
+                        <i class="bi bi-list-ul"></i> Состав заказа
+                    </h5>
+                    <div class="table-responsive mb-4">
+                        <table class="table table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Формат</th>
+                                    <th class="text-center">Кол-во</th>
+                                    <th class="text-end">Цена за шт</th>
+                                    <th class="text-end">Сумма</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in order.items %}
                                 <tr>
                                     <td>{{ item.format_name }}</td>
-                                    <td>{{ item.quantity }}</td>
-                                    <td>{{ item.price_per_item }} BYN</td>
-                                    <td>{{ item.subtotal }} BYN</td>
+                                    <td class="text-center">{{ item.quantity }} шт</td>
+                                    <td class="text-end">{{ "%.2f"|format(item.price_per_item) }} BYN</td>
+                                    <td class="text-end">{{ "%.2f"|format(item.subtotal) }} BYN</td>
                                 </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="table-light">
+                                <tr>
+                                    <td colspan="3" class="text-end fw-bold">Итого:</td>
+                                    <td class="text-end fw-bold">{{ "%.2f"|format(order.total_amount) }} BYN</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
                     
-                    {% if order.notes %}
-                        <p><strong>Примечания:</strong> {{ order.notes }}</p>
-                    {% endif %}
-                    
-                    <h5 class="mb-3">Фотографии ({{ order.photos|length }})</h5>
+                    <!-- Фотографии -->
+                    <h5 class="mb-3" style="color: var(--pink);">
+                        <i class="bi bi-images"></i> Фотографии ({{ order.photos|length }} шт)
+                    </h5>
                     <div class="mb-4">
-                        <a href="{{ url_for('download_order_photos', order_id=order.id) }}" class="btn" style="background-color: var(--cream);">
-                            <i class="bi bi-download"></i> Скачать все фото (ZIP)
-                        </a>
+                        {% if order.photos %}
+                            <div class="row g-2 mb-3">
+                                {% for photo in order.photos[:8] %}
+                                <div class="col-3 col-md-2">
+                                    <div class="border rounded p-2 text-center">
+                                        <i class="bi bi-file-image" style="font-size: 2rem; color: var(--pink);"></i>
+                                        <small class="d-block text-truncate">{{ photo.original_filename }}</small>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <a href="{{ url_for('download_order_photos', order_id=order.id) }}" class="btn" style="background-color: var(--cream);">
+                                <i class="bi bi-download"></i> Скачать все фото (ZIP)
+                            </a>
+                        {% else %}
+                            <p class="text-muted">Нет загруженных фотографий</p>
+                        {% endif %}
                     </div>
                     
                     <hr>
                     
-                    <h5 class="mb-3">Обновить статус</h5>
+                    <!-- Форма обновления статуса -->
+                    <h5 class="mb-3" style="color: var(--pink);">
+                        <i class="bi bi-gear"></i> Обновить статус заказа
+                    </h5>
                     <form method="POST">
                         <div class="row">
                             <div class="col-md-5 mb-3">
                                 <select class="form-select" name="status">
-                                    <option value="pending" {% if order.status == 'pending' %}selected{% endif %}>Ожидает</option>
+                                    <option value="pending" {% if order.status == 'pending' %}selected{% endif %}>Ожидает обработки</option>
                                     <option value="printing" {% if order.status == 'printing' %}selected{% endif %}>В печати</option>
-                                    <option value="ready" {% if order.status == 'ready' %}selected{% endif %}>Готов</option>
+                                    <option value="ready" {% if order.status == 'ready' %}selected{% endif %}>Готов к отправке</option>
                                     <option value="shipped" {% if order.status == 'shipped' %}selected{% endif %}>Отправлен</option>
                                     <option value="completed" {% if order.status == 'completed' %}selected{% endif %}>Завершен</option>
                                     <option value="cancelled" {% if order.status == 'cancelled' %}selected{% endif %}>Отменен</option>
@@ -96,19 +223,48 @@
                             </div>
                             <div class="col-md-5 mb-3">
                                 <input type="text" class="form-control" name="tracking_number" placeholder="Трек-код" value="{{ order.tracking_number or '' }}">
+                                <small class="text-muted">Для Белпочты: 14 цифр, для Европочты: номер отправления</small>
                             </div>
                             <div class="col-md-2 mb-3">
-                                <button type="submit" class="btn w-100" style="background-color: var(--pink); color: white;">Обновить</button>
+                                <button type="submit" class="btn w-100" style="background-color: var(--pink); color: white;">
+                                    <i class="bi bi-check-lg"></i> Обновить
+                                </button>
                             </div>
                         </div>
                     </form>
                     
-                    <div class="mt-3">
+                    <!-- Кнопки действий -->
+                    <div class="mt-3 d-flex gap-2">
                         <a href="{{ url_for('admin_orders') }}" class="btn btn-secondary">← Назад к списку</a>
+                        {% if order.tracking_number and order.status in ['shipped', 'completed'] %}
+                            {% if order.delivery_method == 'belpost' %}
+                                <a href="https://www.belpost.by/by/Otsleditotpravleniye?number={{ order.tracking_number }}" target="_blank" class="btn btn-info">
+                                    <i class="bi bi-truck"></i> Отследить на Белпочте
+                                </a>
+                            {% else %}
+                                <a href="https://europost.by/tracking/{{ order.tracking_number }}" target="_blank" class="btn btn-info">
+                                    <i class="bi bi-truck"></i> Отследить на Европочте
+                                </a>
+                            {% endif %}
+                        {% endif %}
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </section>
+
+<script>
+// Функция для копирования адреса в буфер обмена
+function copyAddress() {
+    {% set delivery = order.delivery_details|from_json if order.delivery_details else {} %}
+    {% if order.delivery_method == 'belpost' %}
+        var address = "{{ delivery.index }} {{ delivery.address }} {{ delivery.apartment }}".trim();
+    {% else %}
+        var address = "{% if delivery.office_number %}Отделение №{{ delivery.office_number }}, {{ delivery.city }}{% else %}{{ delivery.address }}{% endif %}";
+    {% endif %}
+    navigator.clipboard.writeText(address);
+    alert("Адрес скопирован!");
+}
+</script>
 {% endblock %}

@@ -51,10 +51,11 @@
           <div class="card-body">
             {% if example.image_url %}
             <img
-              src="static/{{ example.image_url }}"
+              src="{{ example.image_url if example.image_url.startswith('http') else url_for('static', filename=example.image_url.lstrip('/')) }}"
               alt="{{ example.title }}"
               class="img-fluid rounded mb-2"
               style="height: 150px; object-fit: cover; width: 100%"
+              onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'100%25\' height=\'100%25\'%3E%3Crect width=\'100%25\' height=\'100%25\' fill=\'%23f5e79c\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' text-anchor=\'middle\' dy=\'.3em\' fill=\'%23fff\' font-size=\'24\'%3E{{ example.title }}%3C/text%3E%3C/svg%3E'"
             />
             {% else %}
             <div
@@ -208,48 +209,8 @@
                   </td>
                 </tr>
                 {% endfor %} {% else %}
-                <!-- Запасные данные -->
                 <tr>
-                  <td>10 x 15</td>
-                  <td>0.35 BYN</td>
-                  <td>26 шт</td>
-                  <td>9.10 BYN</td>
-                </tr>
-                <tr>
-                  <td>10 x 10</td>
-                  <td>0.40 BYN</td>
-                  <td>50 шт</td>
-                  <td>20.00 BYN</td>
-                </tr>
-                <tr>
-                  <td>9 x 13</td>
-                  <td>0.40 BYN</td>
-                  <td>26 шт</td>
-                  <td>10.40 BYN</td>
-                </tr>
-                <tr>
-                  <td>Polaroid 10 x 12</td>
-                  <td>0.25 BYN</td>
-                  <td>40 шт</td>
-                  <td>10.00 BYN</td>
-                </tr>
-                <tr>
-                  <td>Fuji / Instax 7 x 10</td>
-                  <td>0.25 BYN</td>
-                  <td>40 шт</td>
-                  <td>10.00 BYN</td>
-                </tr>
-                <tr>
-                  <td>MiniPolaroid 7 x 10</td>
-                  <td>0.25 BYN</td>
-                  <td>50 шт</td>
-                  <td>12.50 BYN</td>
-                </tr>
-                <tr>
-                  <td>Фотополоска 5 x 15</td>
-                  <td>0.25 BYN</td>
-                  <td>40 шт</td>
-                  <td>10.00 BYN</td>
+                  <td colspan="4" class="text-center">Нет данных</td>
                 </tr>
                 {% endif %}
               </tbody>
@@ -367,9 +328,9 @@
                   value="belpost"
                   checked
                 />
-                <label class="form-check-label fw-bold" for="belpost">
-                  Белпочта
-                </label>
+                <label class="form-check-label fw-bold" for="belpost"
+                  >Белпочта</label
+                >
               </div>
               <div id="belpost-fields" class="ms-4 mb-3">
                 <div class="mb-2">
@@ -411,9 +372,9 @@
                   id="europost"
                   value="europost"
                 />
-                <label class="form-check-label fw-bold" for="europost">
-                  Европочта
-                </label>
+                <label class="form-check-label fw-bold" for="europost"
+                  >Европочта</label
+                >
               </div>
               <div id="europost-fields" class="ms-4 mb-3" style="display: none">
                 <div class="mb-2">
@@ -453,13 +414,13 @@
               </div>
             </div>
 
-            <!-- Данные заказа с множественным выбором -->
+            <!-- Данные заказа - автоматический расчет по фото -->
             <h5 class="mb-3" style="color: var(--pink)">Данные заказа</h5>
 
             <div id="order-items">
               <div class="order-item mb-4 p-3 border rounded">
                 <div class="row">
-                  <div class="col-md-5 mb-2">
+                  <div class="col-md-6 mb-2">
                     <label class="form-label">Формат *</label>
                     <select
                       class="form-select format-select"
@@ -480,39 +441,18 @@
                         }} BYN/шт{% if price.min_quantity > 0 %}, мин. {{
                         price.min_quantity }} шт{% endif %})
                       </option>
-                      {% endfor %} {% else %}
-                      <option value="10x15">
-                        10x15 (0.35 BYN/шт, мин. 26 шт)
-                      </option>
-                      <option value="10x10">
-                        10x10 (0.40 BYN/шт, мин. 50 шт)
-                      </option>
-                      <option value="9x13">
-                        9x13 (0.40 BYN/шт, мин. 26 шт)
-                      </option>
-                      <option value="polaroid-10x12">
-                        Polaroid 10x12 (0.25 BYN/шт, мин. 40 шт)
-                      </option>
-                      <option value="fuji-7x10">
-                        Fuji/Instax 7x10 (0.25 BYN/шт, мин. 40 шт)
-                      </option>
-                      <option value="minipolaroid-7x10">
-                        MiniPolaroid 7x10 (0.25 BYN/шт, мин. 50 шт)
-                      </option>
-                      <option value="5x15">
-                        Фотополоска 5x15 (0.25 BYN/шт, мин. 40 шт)
-                      </option>
-                      {% endif %}
+                      {% endfor %} {% endif %}
                     </select>
                   </div>
-                  <div class="col-md-3 mb-2">
-                    <label class="form-label">Количество *</label>
+                  <div class="col-md-4 mb-2">
+                    <label class="form-label">Количество фото</label>
                     <input
                       type="number"
                       class="form-control quantity-input"
                       name="quantity[]"
-                      min="1"
-                      required
+                      readonly
+                      style="background-color: #f5f5f5"
+                      placeholder="Автоматически"
                     />
                   </div>
                   <div class="col-md-2 mb-2">
@@ -523,15 +463,6 @@
                       readonly
                       value="0.00 BYN"
                     />
-                  </div>
-                  <div class="col-md-2 mb-2 d-flex align-items-end">
-                    <button
-                      type="button"
-                      class="btn btn-outline-danger remove-item"
-                      style="display: none"
-                    >
-                      Удалить
-                    </button>
                   </div>
                 </div>
                 <div class="mt-2">
@@ -549,6 +480,16 @@
                     id="photo-count-0"
                     >0 фото</span
                   >
+                  {% if price and price.min_quantity > 0 %}
+                  <span
+                    class="text-warning small ms-2 min-warning"
+                    id="min-warning-0"
+                    style="display: none"
+                  >
+                    ⚠️ Нужно еще <span class="need-count">0</span> шт для
+                    минимального заказа
+                  </span>
+                  {% endif %}
                 </div>
               </div>
             </div>
@@ -585,6 +526,16 @@
               <p class="mb-1">
                 <strong>Итого:</strong> <span id="total-amount">0.00</span> BYN
               </p>
+              <p class="mb-1">
+                <strong>Всего фото:</strong> <span id="total-photos">0</span> шт
+              </p>
+              <p
+                class="mb-1"
+                id="discount-info"
+                style="display: none; color: green"
+              >
+                🎉 Применена скидка 5% (от 200 фото)
+              </p>
               <p class="mb-0 small">
                 Минимальный заказ — 10 рублей. При заказе от 200 штук скидка 5%.
               </p>
@@ -618,9 +569,9 @@
                   name="sms_consent"
                   id="smsConsent"
                 />
-                <label class="form-check-label" for="smsConsent">
-                  Согласен на получение SMS-уведомлений о статусе заказа
-                </label>
+                <label class="form-check-label" for="smsConsent"
+                  >Согласен на получение SMS-уведомлений о статусе заказа</label
+                >
               </div>
             </div>
 
@@ -661,7 +612,6 @@
 <section id="reviews" class="py-5 section-cream">
   <div class="container">
     <h2 class="section-title text-center">Отзывы наших клиентов</h2>
-
     <div class="row">
       {% for review in reviews %}
       <div class="col-md-4 mb-4">
@@ -762,11 +712,22 @@
   </div>
 </div>
 
-<!-- Контакты -->
+<!-- Контакты (редактируемые) -->
 <section id="contacts" class="py-5 section-white">
   <div class="container">
     <h2 class="section-title text-center">Контакты</h2>
-    <div class="row g-4">
+    <div class="row g-4" id="contacts-container">
+      {% if contacts %} {% for contact in contacts %}
+      <div class="col-md-3">
+        <div class="contact-item text-center">
+          <div style="font-size: 2rem; margin-bottom: 10px">
+            {{ contact.icon|safe }}
+          </div>
+          <h5>{{ contact.title }}</h5>
+          <p class="mb-0">{{ contact.value }}</p>
+        </div>
+      </div>
+      {% endfor %} {% else %}
       <div class="col-md-3">
         <div class="contact-item text-center">
           <div style="font-size: 2rem; margin-bottom: 10px">📍</div>
@@ -801,7 +762,21 @@
           <p class="mb-0">+375 (29) 247-27-16</p>
         </div>
       </div>
+      {% endif %}
     </div>
+    {% if current_user.is_admin %}
+    <div class="text-center mt-4">
+      <button
+        type="button"
+        class="btn btn-sm"
+        style="background-color: var(--cream)"
+        data-bs-toggle="modal"
+        data-bs-target="#editContactsModal"
+      >
+        <i class="bi bi-pencil"></i> Редактировать контакты
+      </button>
+    </div>
+    {% endif %}
   </div>
 </section>
 
@@ -868,6 +843,79 @@
     </div>
   </div>
 </div>
+
+<!-- Модальное окно редактирования контактов -->
+<div class="modal fade" id="editContactsModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Редактирование контактов</h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <form action="{{ url_for('update_contacts') }}" method="POST">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Адрес</label>
+            <input
+              type="text"
+              class="form-control"
+              name="address"
+              value="{{ contacts[0].value if contacts and contacts|length > 0 else 'г. Минск' }}"
+            />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Телефон</label>
+            <input
+              type="text"
+              class="form-control"
+              name="phone"
+              value="{{ contacts[1].value if contacts and contacts|length > 1 else '+375 (29) 247-27-16' }}"
+            />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Telegram</label>
+            <input
+              type="text"
+              class="form-control"
+              name="telegram"
+              value="{{ contacts[2].value if contacts and contacts|length > 2 else '@printlyphoto' }}"
+            />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Viber</label>
+            <input
+              type="text"
+              class="form-control"
+              name="viber"
+              value="{{ contacts[3].value if contacts and contacts|length > 3 else '+375 (29) 247-27-16' }}"
+            />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            data-bs-dismiss="modal"
+          >
+            Отмена
+          </button>
+          <button
+            type="submit"
+            class="btn"
+            style="background-color: var(--pink); color: white"
+          >
+            Сохранить
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <div class="modal fade" id="privacyModal" tabindex="-1">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
@@ -886,56 +934,8 @@
           <p>
             Настоящая политика обработки персональных данных составлена в
             соответствии с требованиями Закона Республики Беларусь от 7 мая 2021
-            г. № 99-З «О защите персональных данных» и определяет порядок
-            обработки персональных данных и меры по обеспечению безопасности
-            персональных данных, предпринимаемые ИП (наименование) (далее –
-            Оператор).
+            г. № 99-З «О защите персональных данных»...
           </p>
-
-          <h6 class="mt-4">2. Основные понятия</h6>
-          <p>
-            Персональные данные – любая информация, относящаяся к прямо или
-            косвенно определенному или определяемому физическому лицу (субъекту
-            персональных данных).
-          </p>
-
-          <h6 class="mt-4">3. Цели сбора персональных данных</h6>
-          <p>
-            Оператор собирает и хранит только те персональные данные, которые
-            необходимы для оказания услуг по печати фотографий и их доставки:
-          </p>
-          <ul>
-            <li>Фамилия, имя, отчество</li>
-            <li>Номер телефона</li>
-            <li>Адрес доставки</li>
-          </ul>
-
-          <h6 class="mt-4">4. Обработка персональных данных</h6>
-          <p>
-            Обработка персональных данных осуществляется с согласия субъекта
-            персональных данных на обработку его персональных данных.
-          </p>
-
-          <h6 class="mt-4">5. Хранение персональных данных</h6>
-          <p>
-            Персональные данные субъектов хранятся на территории Республики
-            Беларусь. Срок хранения персональных данных – 3 года с момента
-            последнего взаимодействия с клиентом.
-          </p>
-
-          <h6 class="mt-4">6. Права субъекта персональных данных</h6>
-          <p>Субъект персональных данных имеет право:</p>
-          <ul>
-            <li>
-              на получение информации, касающейся обработки его персональных
-              данных
-            </li>
-            <li>
-              на требование уточнения, блокирования или уничтожения его
-              персональных данных
-            </li>
-            <li>на отзыв согласия на обработку персональных данных</li>
-          </ul>
           {% endif %}
         </div>
       </div>
@@ -970,88 +970,365 @@
       belpostRadio.addEventListener("change", updateDeliveryFields);
     if (europostRadio)
       europostRadio.addEventListener("change", updateDeliveryFields);
-    updateDeliveryFields(); // Вызываем при загрузке
+    updateDeliveryFields();
 
-    // Управление множественными форматами
-    let itemCount = 1;
-    const orderItems = document.getElementById("order-items");
-    const addBtn = document.getElementById("add-format-btn");
+    // Данные о форматах (мин. количество и цена)
+    let formatData = {};
+    document.querySelectorAll(".format-select option").forEach((opt) => {
+      if (opt.value) {
+        formatData[opt.value] = {
+          price: parseFloat(opt.dataset.price) || 0,
+          minQty: parseInt(opt.dataset.min) || 0,
+        };
+      }
+    });
 
-    function addItemHandlers(item) {
+    // Загрузка фотографий
+    let currentFormatIndex = 0;
+    let uploadedFiles = {};
+
+    function updateQuantityAndPrice(formatIndex) {
+      const item = document
+        .querySelector(
+          `.order-item .upload-photos-btn[data-format-index="${formatIndex}"]`,
+        )
+        .closest(".order-item");
       const formatSelect = item.querySelector(".format-select");
       const quantityInput = item.querySelector(".quantity-input");
       const subtotalInput = item.querySelector(".item-subtotal");
+      const minWarning = document.getElementById(`min-warning-${formatIndex}`);
 
-      function calculateSubtotal() {
-        const format = formatSelect.value;
-        const quantity = parseInt(quantityInput.value) || 0;
+      const selectedFormat = formatSelect.value;
+      const photoCount = uploadedFiles[formatIndex]
+        ? uploadedFiles[formatIndex].length
+        : 0;
 
-        // Получаем цену из data-атрибута выбранной опции
+      // Обновляем количество
+      quantityInput.value = photoCount;
+
+      // Получаем цену
+      const price = formatData[selectedFormat]?.price || 0;
+      const minQty = formatData[selectedFormat]?.minQty || 0;
+
+      // Считаем сумму
+      const subtotal = price * photoCount;
+      subtotalInput.value = subtotal.toFixed(2) + " BYN";
+
+      // Показываем предупреждение о минимальном количестве
+      if (minWarning && minQty > 0 && photoCount > 0 && photoCount < minQty) {
+        const needCount = minQty - photoCount;
+        minWarning.querySelector(".need-count").textContent = needCount;
+        minWarning.style.display = "inline";
+      } else if (minWarning) {
+        minWarning.style.display = "none";
+      }
+
+      calculateTotal();
+    }
+    
+    function calculateTotal() {
+      let total = 0;
+      let totalPhotos = 0;
+
+      document.querySelectorAll(".order-item").forEach((item, idx) => {
+        const formatSelect = item.querySelector(".format-select");
+        const quantity =
+          parseInt(item.querySelector(".quantity-input").value) || 0;
         const selectedOption = formatSelect.options[formatSelect.selectedIndex];
         let price = 0;
 
         if (selectedOption && selectedOption.dataset.price) {
           price = parseFloat(selectedOption.dataset.price);
-        } else {
-          // Fallback
-          if (format === "10x15") price = 0.35;
-          else if (format === "10x10" || format === "9x13") price = 0.4;
-          else if (
-            format.includes("polaroid") ||
-            format.includes("fuji") ||
-            format === "5x15"
-          )
-            price = 0.25;
-          else if (format === "minipolaroid-7x10") price = 0.25;
-          else price = 0.35;
         }
 
-        const subtotal = price * quantity;
-        subtotalInput.value = subtotal.toFixed(2) + " BYN";
+        total += price * quantity;
+        totalPhotos += quantity;
+      });
 
-        calculateTotal();
+      let discountApplied = false;
+      let discountAmount = 0;
+      let originalTotal = total;
+
+      // Применяем скидку от 200 фото
+      if (totalPhotos >= 200) {
+        discountAmount = total * 0.05; // 5% скидка
+        total = total * 0.95;
+        discountApplied = true;
       }
 
-      formatSelect.addEventListener("change", calculateSubtotal);
-      quantityInput.addEventListener("input", calculateSubtotal);
+      // Обновляем отображение
+      document.getElementById("total-amount").textContent = total.toFixed(2);
+      document.getElementById("total-photos").textContent = totalPhotos;
+
+      // Показываем информацию о скидке
+      const discountInfo = document.getElementById("discount-info");
+      if (discountInfo) {
+        if (discountApplied) {
+          discountInfo.style.display = "block";
+          discountInfo.style.color = "green";
+          discountInfo.innerHTML = `🎉 Скидка 5% применена! Вы сэкономили ${discountAmount.toFixed(2)} BYN`;
+        } else if (totalPhotos > 0) {
+          const needMore = 200 - totalPhotos;
+          discountInfo.style.display = "block";
+          discountInfo.style.color = "#fd7e14";
+          discountInfo.innerHTML = `💰 Добавьте еще ${needMore} фото для скидки 5% (экономия ${(originalTotal * 0.05).toFixed(2)} BYN)`;
+        } else {
+          discountInfo.style.display = "none";
+        }
+      }
     }
+
+    // Инициализация кнопок загрузки
+    function initUploadButtons() {
+      document.querySelectorAll(".upload-photos-btn").forEach((btn) => {
+        const newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
+
+        newBtn.addEventListener("click", function (e) {
+          e.preventDefault();
+          currentFormatIndex = parseInt(this.dataset.formatIndex);
+          const modal = new bootstrap.Modal(
+            document.getElementById("uploadModal"),
+          );
+          modal.show();
+          if (
+            uploadedFiles[currentFormatIndex] &&
+            uploadedFiles[currentFormatIndex].length > 0
+          ) {
+            displayUploadedFiles(currentFormatIndex);
+          } else {
+            document.getElementById("uploadedFilesList").innerHTML =
+              '<p class="text-muted">Нет загруженных файлов</p>';
+          }
+        });
+      });
+    }
+
+    function displayUploadedFiles(formatIndex) {
+      const list = document.getElementById("uploadedFilesList");
+      if (!list) return;
+      const files = uploadedFiles[formatIndex] || [];
+      if (files.length === 0) {
+        list.innerHTML = '<p class="text-muted">Нет загруженных файлов</p>';
+        return;
+      }
+      let html = '<h6>Загруженные файлы:</h6><div class="uploaded-files-list">';
+      files.forEach((file, i) => {
+        html += `
+          <div class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded">
+            <div>
+              <i class="bi bi-file-image me-2"></i>
+              <small>${file.original_filename}</small><br>
+              <small class="text-muted">${(file.size / 1024).toFixed(1)} KB</small>
+            </div>
+            <button type="button" class="btn btn-sm btn-link text-danger delete-file-btn" 
+                    data-filename="${file.saved_filename}" data-format-index="${formatIndex}" data-file-index="${i}">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+        `;
+      });
+      html += "</div>";
+      list.innerHTML = html;
+
+      document.querySelectorAll(".delete-file-btn").forEach((btn) => {
+        btn.addEventListener("click", function () {
+          const filename = this.dataset.filename;
+          const formatIdx = parseInt(this.dataset.formatIndex);
+          const fileIdx = parseInt(this.dataset.fileIndex);
+          deleteFile(filename, formatIdx, fileIdx);
+        });
+      });
+    }
+
+    window.deleteFile = function (filename, formatIndex, fileIndex) {
+      fetch("/delete_upload/" + encodeURIComponent(filename), {
+        method: "POST",
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.success && uploadedFiles[formatIndex]) {
+            uploadedFiles[formatIndex].splice(fileIndex, 1);
+            displayUploadedFiles(formatIndex);
+            const photoCountSpan = document.getElementById(
+              `photo-count-${formatIndex}`,
+            );
+            if (photoCountSpan)
+              photoCountSpan.textContent = `${uploadedFiles[formatIndex]?.length || 0} фото`;
+            updateQuantityAndPrice(formatIndex);
+          }
+        })
+        .catch((error) => console.error("Error:", error));
+    };
+
+    function handleFiles(files) {
+      if (!files || files.length === 0) return;
+
+      const allowedExtensions = [
+        "jpg",
+        "jpeg",
+        "png",
+        "gif",
+        "bmp",
+        "tiff",
+        "webp",
+        "heic",
+        "heif",
+      ];
+      const validFiles = [];
+      const currentCount = uploadedFiles[currentFormatIndex]
+        ? uploadedFiles[currentFormatIndex].length
+        : 0;
+
+      if (currentCount + files.length > 100) {
+        alert(`Максимум 100 фото на заказ. У вас уже ${currentCount} фото.`);
+        return;
+      }
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const extension = file.name.split(".").pop().toLowerCase();
+        if (allowedExtensions.includes(extension)) {
+          if (file.size <= 50 * 1024 * 1024) validFiles.push(file);
+          else alert(`Файл ${file.name} слишком большой (максимум 50MB)`);
+        } else {
+          alert(`Неподдерживаемый формат: ${file.name}`);
+        }
+      }
+
+      if (validFiles.length === 0) return;
+
+      const formData = new FormData();
+      formData.append("format", currentFormatIndex);
+      validFiles.forEach((file) => formData.append("photos", file));
+
+      const progressBar = document.getElementById("uploadProgress");
+      const progressBarInner = progressBar.querySelector(".progress-bar");
+      progressBar.style.display = "block";
+      progressBarInner.style.width = "0%";
+      progressBarInner.textContent = "0%";
+
+      let simulatedProgress = 0;
+      const progressInterval = setInterval(() => {
+        if (simulatedProgress < 90) {
+          simulatedProgress += 10;
+          progressBarInner.style.width = simulatedProgress + "%";
+          progressBarInner.textContent = simulatedProgress + "%";
+        }
+      }, 200);
+
+      fetch("/upload_photos", { method: "POST", body: formData })
+        .then((response) => response.json())
+        .then((data) => {
+          clearInterval(progressInterval);
+          progressBarInner.style.width = "100%";
+          progressBarInner.textContent = "100%";
+          setTimeout(() => {
+            progressBar.style.display = "none";
+          }, 1000);
+
+          if (data.success) {
+            if (!uploadedFiles[currentFormatIndex])
+              uploadedFiles[currentFormatIndex] = [];
+            uploadedFiles[currentFormatIndex] = uploadedFiles[
+              currentFormatIndex
+            ].concat(data.files);
+
+            const photoCountSpan = document.getElementById(
+              `photo-count-${currentFormatIndex}`,
+            );
+            if (photoCountSpan)
+              photoCountSpan.textContent = `${uploadedFiles[currentFormatIndex].length} фото`;
+
+            displayUploadedFiles(currentFormatIndex);
+            updateQuantityAndPrice(currentFormatIndex);
+          }
+          if (data.errors && data.errors.length)
+            alert("Ошибки загрузки:\n" + data.errors.join("\n"));
+        })
+        .catch((error) => {
+          clearInterval(progressInterval);
+          alert("Ошибка загрузки файлов");
+          progressBar.style.display = "none";
+        });
+    }
+
+    // Обработчики загрузки
+    const uploadArea = document.getElementById("uploadArea");
+    const fileInput = document.getElementById("fileInput");
+    const selectFilesBtn = document.getElementById("selectFilesBtn");
+
+    if (uploadArea) {
+      uploadArea.addEventListener("click", () => fileInput.click());
+      uploadArea.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        uploadArea.style.backgroundColor = "rgba(255, 105, 180, 0.1)";
+      });
+      uploadArea.addEventListener("dragleave", () => {
+        uploadArea.style.backgroundColor = "";
+      });
+      uploadArea.addEventListener("drop", (e) => {
+        e.preventDefault();
+        uploadArea.style.backgroundColor = "";
+        handleFiles(e.dataTransfer.files);
+      });
+    }
+    if (selectFilesBtn)
+      selectFilesBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        fileInput.click();
+      });
+    if (fileInput)
+      fileInput.addEventListener("change", (e) => {
+        handleFiles(e.target.files);
+        fileInput.value = "";
+      });
+
+    const saveUploadedBtn = document.getElementById("saveUploadedBtn");
+    if (saveUploadedBtn)
+      saveUploadedBtn.addEventListener("click", () =>
+        bootstrap.Modal.getInstance(
+          document.getElementById("uploadModal"),
+        )?.hide(),
+      );
+
+    // Добавление нового формата
+    let itemCount = 1;
+    const orderItems = document.getElementById("order-items");
+    const addBtn = document.getElementById("add-format-btn");
 
     if (addBtn) {
       addBtn.addEventListener("click", function () {
         const firstItem = document.querySelector(".order-item");
         const newItem = firstItem.cloneNode(true);
-
-        // Очищаем значения
         newItem.querySelector(".format-select").value = "";
         newItem.querySelector(".quantity-input").value = "";
         newItem.querySelector(".item-subtotal").value = "0.00 BYN";
 
-        // Обновляем индексы
-        const index = itemCount;
         const uploadBtn = newItem.querySelector(".upload-photos-btn");
-        uploadBtn.dataset.formatIndex = index;
+        uploadBtn.dataset.formatIndex = itemCount;
 
         const photoCountSpan = newItem.querySelector(".photo-count");
-        photoCountSpan.id = `photo-count-${index}`;
+        photoCountSpan.id = `photo-count-${itemCount}`;
         photoCountSpan.textContent = "0 фото";
 
-        // Добавляем обработчик для кнопки загрузки
+        const minWarning = newItem.querySelector(".min-warning");
+        if (minWarning) minWarning.id = `min-warning-${itemCount}`;
+
         uploadBtn.addEventListener("click", function (e) {
           e.preventDefault();
-          currentFormatIndex = this.dataset.formatIndex;
+          currentFormatIndex = parseInt(this.dataset.formatIndex);
           const modal = new bootstrap.Modal(
             document.getElementById("uploadModal"),
           );
           modal.show();
-          // Обновляем список загруженных файлов для этого формата
-          if (uploadedFiles[currentFormatIndex]) {
+          if (uploadedFiles[currentFormatIndex]?.length > 0)
             displayUploadedFiles(currentFormatIndex);
-          } else {
-            document.getElementById("uploadedFilesList").innerHTML = "";
-          }
+          else
+            document.getElementById("uploadedFilesList").innerHTML =
+              '<p class="text-muted">Нет загруженных файлов</p>';
         });
 
-        // Показываем кнопку удаления
         const removeBtn = newItem.querySelector(".remove-item");
         removeBtn.style.display = "block";
         removeBtn.addEventListener("click", function () {
@@ -1061,390 +1338,41 @@
 
         orderItems.appendChild(newItem);
         itemCount++;
-
-        // Добавляем обработчики для нового элемента
-        addItemHandlers(newItem);
       });
     }
 
-    // Добавляем обработчики для первого элемента
-    const firstItem = document.querySelector(".order-item");
-    if (firstItem) addItemHandlers(firstItem);
-
-    function calculateTotal() {
-      let total = 0;
-      let totalQuantity = 0;
-
-      document.querySelectorAll(".order-item").forEach((item) => {
-        const subtotalText = item.querySelector(".item-subtotal").value;
-        const subtotal = parseFloat(subtotalText) || 0;
-        total += subtotal;
-
-        const quantity =
-          parseInt(item.querySelector(".quantity-input").value) || 0;
-        totalQuantity += quantity;
-      });
-
-      // Применяем скидку
-      if (totalQuantity >= 200) {
-        total *= 0.95;
+    // Обработка изменения формата
+    document.addEventListener("change", function (e) {
+      if (e.target.classList.contains("format-select")) {
+        const item = e.target.closest(".order-item");
+        const btn = item.querySelector(".upload-photos-btn");
+        const idx = parseInt(btn.dataset.formatIndex);
+        updateQuantityAndPrice(idx);
       }
+    });
 
-      const totalElement = document.getElementById("total-amount");
-      if (totalElement) {
-        totalElement.textContent = total.toFixed(2);
-      }
-    }
-
-    // Загрузка фотографий
-    let currentFormatIndex = 0;
-    let uploadedFiles = {};
-
-    // Инициализация всех кнопок загрузки
-    function initUploadButtons() {
-      document.querySelectorAll(".upload-photos-btn").forEach((btn) => {
-        // Удаляем старые обработчики, чтобы не дублировать
-        const newBtn = btn.cloneNode(true);
-        btn.parentNode.replaceChild(newBtn, btn);
-
-        newBtn.addEventListener("click", function (e) {
-          e.preventDefault();
-          currentFormatIndex = this.dataset.formatIndex;
-          console.log("Opening upload modal for format:", currentFormatIndex);
-          const modal = new bootstrap.Modal(
-            document.getElementById("uploadModal"),
-          );
-          modal.show();
-          // Обновляем список загруженных файлов для этого формата
-          if (
-            uploadedFiles[currentFormatIndex] &&
-            uploadedFiles[currentFormatIndex].length > 0
-          ) {
-            displayUploadedFiles(currentFormatIndex);
-          } else {
-            const listElement = document.getElementById("uploadedFilesList");
-            if (listElement)
-              listElement.innerHTML =
-                '<p class="text-muted">Нет загруженных файлов</p>';
-          }
-        });
-      });
-    }
-
-    // Инициализация кнопок загрузки
     initUploadButtons();
 
-    // Обработка загрузки файлов
-    const uploadArea = document.getElementById("uploadArea");
-    const fileInput = document.getElementById("fileInput");
-    const selectFilesBtn = document.getElementById("selectFilesBtn");
-
-    // Функция для отображения загруженных файлов
-    function displayUploadedFiles(formatIndex) {
-      const list = document.getElementById("uploadedFilesList");
-      if (!list) return;
-
-      const files = uploadedFiles[formatIndex] || [];
-      if (files.length === 0) {
-        list.innerHTML = '<p class="text-muted">Нет загруженных файлов</p>';
-        return;
-      }
-
-      let html = '<h6>Загруженные файлы:</h6><div class="uploaded-files-list">';
-
-      files.forEach((file, i) => {
-        // Определяем тип файла по иконке
-        let fileIcon = "bi-file-image";
-        if (file.original_filename.toLowerCase().includes(".heic")) {
-          fileIcon = "bi-phone";
-        } else if (file.original_filename.toLowerCase().includes(".png")) {
-          fileIcon = "bi-image";
-        }
-
-        html += `
-                <div class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded">
-                    <div>
-                        <i class="bi ${fileIcon} me-2"></i>
-                        <small>${file.original_filename}</small>
-                        <br>
-                        <small class="text-muted">${(file.size / 1024).toFixed(1)} KB</small>
-                    </div>
-                    <button type="button" class="btn btn-sm btn-link text-danger delete-file-btn" 
-                            data-filename="${file.saved_filename}" 
-                            data-format-index="${formatIndex}" 
-                            data-file-index="${i}">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </div>
-            `;
-      });
-
-      html += "</div>";
-      list.innerHTML = html;
-
-      // Добавляем обработчики для кнопок удаления
-      document.querySelectorAll(".delete-file-btn").forEach((btn) => {
-        btn.addEventListener("click", function () {
-          const filename = this.dataset.filename;
-          const formatIndex = parseInt(this.dataset.formatIndex);
-          const fileIndex = parseInt(this.dataset.fileIndex);
-          deleteFile(filename, formatIndex, fileIndex);
-        });
-      });
-    }
-
-    // Функция удаления файла
-    window.deleteFile = function (filename, formatIndex, fileIndex) {
-      fetch("/delete_upload/" + encodeURIComponent(filename), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      })
-        .then((response) => response.json())
-        .then((data) => {
-          if (data.success) {
-            if (uploadedFiles[formatIndex]) {
-              uploadedFiles[formatIndex].splice(fileIndex, 1);
-              displayUploadedFiles(formatIndex);
-
-              // Обновляем счетчик фото для этого формата
-              const photoCountSpan = document.getElementById(
-                `photo-count-${formatIndex}`,
-              );
-              if (photoCountSpan) {
-                photoCountSpan.textContent = `${uploadedFiles[formatIndex]?.length || 0} фото`;
-              }
-            }
-          } else {
-            alert("Ошибка при удалении файла");
-          }
-        })
-        .catch((error) => {
-          console.error("Error:", error);
-          alert("Ошибка при удалении файла");
-        });
-    };
-    function handleFiles(files) {
-    if (!files || files.length === 0) {
-        console.log('No files selected');
-        return;
-    }
-    
-    console.log(`Processing ${files.length} files for format ${currentFormatIndex}`);
-    
-    // Разрешенные форматы
-    const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'tiff', 'webp', 'heic', 'heif'];
-    const validFiles = [];
-    const invalidFiles = [];
-    
-    // Проверка общего количества (максимум 100)
-    const currentCount = uploadedFiles[currentFormatIndex] ? uploadedFiles[currentFormatIndex].length : 0;
-    if (currentCount + files.length > 100) {
-        alert(`Максимум 100 фото на заказ. У вас уже ${currentCount} фото.`);
-        return;
-    }
-    
-    for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const extension = file.name.split('.').pop().toLowerCase();
-        
-        if (allowedExtensions.includes(extension)) {
-            if (file.size > 50 * 1024 * 1024) {
-                alert(`Файл ${file.name} слишком большой (максимум 50MB)`);
-                continue;
-            }
-            validFiles.push(file);
-        } else {
-            invalidFiles.push(file.name);
-        }
-    }
-    
-    if (invalidFiles.length > 0) {
-        alert(`Неподдерживаемые форматы: ${invalidFiles.join(', ')}`);
-        if (validFiles.length === 0) return;
-    }
-    
-    if (validFiles.length === 0) return;
-    
-    const formData = new FormData();
-    formData.append('format', currentFormatIndex);
-    
-    for (let i = 0; i < validFiles.length; i++) {
-        formData.append('photos', validFiles[i]);
-    }
-    
-    const progressBar = document.getElementById('uploadProgress');
-    const progressBarInner = progressBar.querySelector('.progress-bar');
-    progressBar.style.display = 'block';
-    progressBarInner.style.width = '0%';
-    progressBarInner.textContent = '0%';
-    
-    // Имитация прогресса для улучшения UX
-    let simulatedProgress = 0;
-    const progressInterval = setInterval(() => {
-        if (simulatedProgress < 90) {
-            simulatedProgress += 10;
-            progressBarInner.style.width = simulatedProgress + '%';
-            progressBarInner.textContent = simulatedProgress + '%';
-        }
-    }, 200);
-    
-    fetch('/upload_photos', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        clearInterval(progressInterval);
-        progressBarInner.style.width = '100%';
-        progressBarInner.textContent = '100%';
-        
-        setTimeout(() => {
-            progressBar.style.display = 'none';
-        }, 1000);
-        
-        if (data.success) {
-            if (!uploadedFiles[currentFormatIndex]) {
-                uploadedFiles[currentFormatIndex] = [];
-            }
-            uploadedFiles[currentFormatIndex] = uploadedFiles[currentFormatIndex].concat(data.files);
-            
-            // Обновляем счетчик
-            const photoCountSpan = document.getElementById(`photo-count-${currentFormatIndex}`);
-            if (photoCountSpan) {
-                photoCountSpan.textContent = `${uploadedFiles[currentFormatIndex].length} фото`;
-            }
-            
-            displayUploadedFiles(currentFormatIndex);
-            
-            if (data.files.length > 0) {
-                const successMsg = document.createElement('div');
-                successMsg.className = 'alert alert-success alert-dismissible fade show mt-2';
-                successMsg.innerHTML = `
-                    Успешно загружено ${data.files.length} файлов
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                `;
-                const listElement = document.getElementById('uploadedFilesList');
-                if (listElement) {
-                    listElement.insertAdjacentElement('beforebegin', successMsg);
-                    setTimeout(() => successMsg.remove(), 3000);
-                }
-            }
-        }
-        
-        if (data.errors && data.errors.length > 0) {
-            console.error('Upload errors:', data.errors);
-            alert('Ошибки загрузки:\n' + data.errors.join('\n'));
-        }
-    })
-    .catch(error => {
-        clearInterval(progressInterval);
-        console.error('Error uploading files:', error);
-        alert('Ошибка загрузки файлов. Пожалуйста, попробуйте еще раз.');
-        progressBar.style.display = 'none';
-    });
-}
-    if (uploadArea) {
-      // Клик по области загрузки
-      uploadArea.addEventListener("click", function (e) {
-        if (e.target === uploadArea || e.target.closest("#uploadArea")) {
-          fileInput.click();
-        }
-      });
-
-      // Drag and drop
-      uploadArea.addEventListener("dragover", function (e) {
-        e.preventDefault();
-        this.style.backgroundColor = "rgba(255, 105, 180, 0.1)";
-        this.style.borderColor = "var(--pink)";
-      });
-
-      uploadArea.addEventListener("dragleave", function (e) {
-        e.preventDefault();
-        this.style.backgroundColor = "";
-        this.style.borderColor = "";
-      });
-
-      uploadArea.addEventListener("drop", function (e) {
-        e.preventDefault();
-        this.style.backgroundColor = "";
-        this.style.borderColor = "";
-        const files = e.dataTransfer.files;
-        if (files && files.length > 0) {
-          handleFiles(files);
-        }
-      });
-    }
-
-    if (selectFilesBtn) {
-      selectFilesBtn.addEventListener("click", function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-        fileInput.click();
-      });
-    }
-
-    if (fileInput) {
-      fileInput.addEventListener("change", function (e) {
-        console.log("File input changed, files selected:", this.files.length);
-        if (this.files && this.files.length > 0) {
-          handleFiles(this.files);
-          this.value = ""; // Сбрасываем, чтобы можно было выбрать те же файлы снова
-        }
-      });
-    }
-
-    // Сохранение перед отправкой формы
-    const saveUploadedBtn = document.getElementById("saveUploadedBtn");
-    if (saveUploadedBtn) {
-      saveUploadedBtn.addEventListener("click", function () {
-        const modal = bootstrap.Modal.getInstance(
-          document.getElementById("uploadModal"),
-        );
-        if (modal) modal.hide();
-      });
-    }
-
-    // Обработка отправки формы заказа
+    // Проверка перед отправкой
     const orderForm = document.getElementById("orderForm");
     if (orderForm) {
       orderForm.addEventListener("submit", function (e) {
-        // Проверяем, что для каждого формата есть хотя бы одно фото
-        const orderItems = document.querySelectorAll(".order-item");
         let hasPhotos = true;
-
-        orderItems.forEach((item, index) => {
+        document.querySelectorAll(".order-item").forEach((item, idx) => {
           const formatSelect = item.querySelector(".format-select");
-          const quantityInput = item.querySelector(".quantity-input");
-          const photoCount = uploadedFiles[index]
-            ? uploadedFiles[index].length
-            : 0;
-
-          if (
-            formatSelect.value &&
-            quantityInput.value &&
-            parseInt(quantityInput.value) > 0
-          ) {
-            if (photoCount === 0) {
-              alert(
-                `Для формата ${formatSelect.options[formatSelect.selectedIndex]?.text || formatSelect.value} не загружены фотографии!`,
-              );
-              hasPhotos = false;
-              e.preventDefault();
-              return;
-            }
+          const photoCount = uploadedFiles[idx] ? uploadedFiles[idx].length : 0;
+          if (formatSelect.value && photoCount === 0) {
+            alert(
+              `Для формата ${formatSelect.options[formatSelect.selectedIndex]?.text} не загружены фотографии!`,
+            );
+            hasPhotos = false;
+            e.preventDefault();
+            return;
           }
         });
-
-        if (!hasPhotos) {
-          e.preventDefault();
-        }
+        if (!hasPhotos) e.preventDefault();
       });
     }
-
-    // Инициализация для существующих кнопок загрузки
-    console.log("DOM fully loaded and parsed");
   });
 </script>
 {% endblock %}

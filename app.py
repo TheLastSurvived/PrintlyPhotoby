@@ -73,6 +73,8 @@ class User(UserMixin, db.Model):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+    
+    
 
 class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -181,6 +183,15 @@ class FormatExample(db.Model):
     image_url = db.Column(db.String(500))  # URL изображения-примера
     sort_order = db.Column(db.Integer, default=0)
     is_active = db.Column(db.Boolean, default=True)
+
+
+class Contact(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    key = db.Column(db.String(50), unique=True, nullable=False)  # address, phone, telegram, viber
+    title = db.Column(db.String(100), nullable=False)
+    icon = db.Column(db.String(200), nullable=False)  # HTML иконка
+    value = db.Column(db.String(200), nullable=False)
+    sort_order = db.Column(db.Integer, default=0)
 
 # Вспомогательные функции
 def allowed_file(filename):
@@ -495,6 +506,7 @@ with app.app_context():
 @app.route('/')
 def index():
     try:
+        contacts = Contact.query.order_by(Contact.sort_order).all()
         reviews = Review.query.filter_by(is_approved=True).order_by(Review.created_at.desc()).limit(5).all()
         active_lottery = Lottery.query.filter_by(is_active=True).filter(
             Lottery.end_date > datetime.now()
@@ -519,6 +531,7 @@ def index():
                              important_info=important_info,
                              privacy_policy=privacy_policy,
                              prices=prices,
+                             contacts=contacts,
                              format_examples=format_examples)
     except Exception as e:
         print(f"Error in index route: {e}")
@@ -528,6 +541,7 @@ def index():
                              important_info='',
                              privacy_policy='',
                              prices=[],
+                             contacts=contacts,
                              format_examples=[])
     except Exception as e:
         print(f"Error in index route: {e}")
@@ -1277,6 +1291,65 @@ def delete_format_example(example_id):
     
     flash('Пример удален', 'success')
     return redirect(url_for('admin_format_examples'))
+
+@app.route('/update_contacts', methods=['POST'])
+@login_required
+def update_contacts():
+    if not current_user.is_admin:
+        abort(403)
+    
+    contacts_data = {
+        'address': {'title': 'Адрес', 'icon': '📍'},
+        'phone': {'title': 'Телефон', 'icon': '<i class="bi bi-telephone-fill"></i>'},
+        'telegram': {'title': 'Telegram', 'icon': '<i class="bi bi-telegram"></i>'},
+        'viber': {'title': 'Viber', 'icon': '<i class="bi bi-chat-dots-fill"></i>'}
+    }
+    
+    for key, data in contacts_data.items():
+        contact = Contact.query.filter_by(key=key).first()
+        value = request.form.get(key, '')
+        if contact:
+            contact.value = value
+        else:
+            contact = Contact(key=key, title=data['title'], icon=data['icon'], value=value)
+            db.session.add(contact)
+    
+    db.session.commit()
+    flash('Контакты обновлены', 'success')
+    return redirect(url_for('index'))
+
+@app.route('/admin/users')
+@login_required
+def admin_users():
+    if not current_user.is_admin:
+        abort(403)
+    
+    users = User.query.order_by(User.created_at.desc()).all()
+    return render_template('admin/users.html', users=users)
+
+
+@app.route('/admin/reset_user_password/<int:user_id>', methods=['POST'])
+@login_required
+def admin_reset_user_password(user_id):
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'error': 'Доступ запрещен'}), 403
+    
+    user = User.query.get_or_404(user_id)
+    
+    # Получаем пароль из JSON или из формы
+    if request.is_json:
+        data = request.get_json()
+        new_password = data.get('password')
+    else:
+        new_password = request.form.get('new_password')
+    
+    if not new_password or len(new_password) < 6:
+        return jsonify({'success': False, 'error': 'Пароль должен быть не менее 6 символов'})
+    
+    user.set_password(new_password)
+    db.session.commit()
+    
+    return jsonify({'success': True})
 
 if __name__ == '__main__':
     app.run(debug=True)

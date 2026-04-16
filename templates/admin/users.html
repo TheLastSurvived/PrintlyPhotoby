@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+
+{% block title %}Управление пользователями{% endblock %}
+
+{% block content %}
+<section class="py-5 section-cream">
+    <div class="container">
+        <h2 class="section-title text-center">Управление пользователями</h2>
+        
+        <div class="card form-card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Телефон</th>
+                                <th>ФИО</th>
+                                <th>Заказов</th>
+                                <th>Дата регистрации</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users %}
+                            <tr>
+                                <td>{{ user.id }}</td>
+                                <td>{{ user.phone }}</td>
+                                <td>{{ user.full_name or '—' }}</td>
+                                <td>{{ user.orders|length }}</td>
+                                <td>{{ user.created_at.strftime('%d.%m.%Y') }}</td>
+                                <td>
+                                    {% if user.is_admin %}
+                                        <span class="badge bg-danger">Администратор</span>
+                                    {% else %}
+                                        <button type="button" class="btn btn-sm btn-warning" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#resetPasswordModal"
+                                                data-user-id="{{ user.id }}"
+                                                data-user-phone="{{ user.phone }}"
+                                                data-user-name="{{ user.full_name or user.phone }}">
+                                            <i class="bi bi-key"></i> Сбросить пароль
+                                        </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-3">
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">← Назад в админку</a>
+        </div>
+    </div>
+</section>
+
+<!-- Модальное окно сброса пароля -->
+<div class="modal fade" id="resetPasswordModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Сброс пароля пользователя</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="resetPasswordForm" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Пользователь</label>
+                        <input type="text" class="form-control" id="userInfo" readonly>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Новый пароль</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="newPassword" name="new_password" 
+                                   style="font-family: monospace; font-size: 14px;" required>
+                            <button type="button" class="btn btn-outline-secondary" id="generatePasswordBtn">
+                                <i class="bi bi-shuffle"></i> Сгенерировать
+                            </button>
+                        </div>
+                        <small class="text-muted">Минимум 6 символов</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Подтверждение пароля</label>
+                        <input type="text" class="form-control" id="confirmPassword" 
+                               style="font-family: monospace; font-size: 14px;" required>
+                        <small class="text-muted" id="passwordMatchMsg"></small>
+                    </div>
+                    
+                    <div class="alert alert-info small">
+                        <i class="bi bi-info-circle"></i> 
+                        Новый пароль нужно будет отправить пользователю в Telegram/Viber.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-warning" id="submitResetBtn" disabled>
+                        <i class="bi bi-key"></i> Сбросить пароль
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let currentUserId = null;
+    let generatedPassword = '';
+    
+    // Генерация случайного пароля
+    function generatePassword() {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+        let password = '';
+        for (let i = 0; i < 10; i++) {
+            password += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        // Добавляем цифры для надежности
+        password += Math.floor(Math.random() * 100);
+        return password;
+    }
+    
+    // Проверка совпадения паролей
+    function checkPasswords() {
+        const password = document.getElementById('newPassword').value;
+        const confirm = document.getElementById('confirmPassword').value;
+        const submitBtn = document.getElementById('submitResetBtn');
+        const msgSpan = document.getElementById('passwordMatchMsg');
+        
+        if (password && confirm) {
+            if (password === confirm) {
+                msgSpan.innerHTML = '✓ Пароли совпадают';
+                msgSpan.style.color = 'green';
+                submitBtn.disabled = false;
+            } else {
+                msgSpan.innerHTML = '✗ Пароли не совпадают';
+                msgSpan.style.color = 'red';
+                submitBtn.disabled = true;
+            }
+        } else {
+            msgSpan.innerHTML = '';
+            submitBtn.disabled = true;
+        }
+    }
+    
+    // Кнопка генерации пароля
+    document.getElementById('generatePasswordBtn').addEventListener('click', function() {
+        const newPassword = generatePassword();
+        document.getElementById('newPassword').value = newPassword;
+        document.getElementById('confirmPassword').value = newPassword;
+        checkPasswords();
+        
+        // Подсветка что сгенерировано
+        const input = document.getElementById('newPassword');
+        input.style.backgroundColor = '#e8f5e9';
+        setTimeout(() => {
+            input.style.backgroundColor = '';
+        }, 500);
+    });
+    
+    // Отслеживание изменения полей
+    document.getElementById('newPassword').addEventListener('input', checkPasswords);
+    document.getElementById('confirmPassword').addEventListener('input', checkPasswords);
+    
+    // Перехват отправки формы
+    document.getElementById('resetPasswordForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const newPassword = document.getElementById('newPassword').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+        
+        if (newPassword !== confirmPassword) {
+            alert('Пароли не совпадают!');
+            return;
+        }
+        
+        if (newPassword.length < 6) {
+            alert('Пароль должен содержать минимум 6 символов');
+            return;
+        }
+        
+        // Отправляем запрос на сброс пароля
+        fetch(`/admin/reset_user_password/${currentUserId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ password: newPassword })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`Пароль успешно сброшен!\n\nНовый пароль: ${newPassword}\n\nОтправьте его пользователю.`);
+                location.reload();
+            } else {
+                alert('Ошибка: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Ошибка при сбросе пароля');
+        });
+    });
+    
+    // Обработка открытия модального окна
+    const modal = document.getElementById('resetPasswordModal');
+    modal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        currentUserId = button.getAttribute('data-user-id');
+        const userPhone = button.getAttribute('data-user-phone');
+        const userName = button.getAttribute('data-user-name');
+        
+        document.getElementById('userInfo').value = `${userName} (${userPhone})`;
+        document.getElementById('newPassword').value = '';
+        document.getElementById('confirmPassword').value = '';
+        document.getElementById('submitResetBtn').disabled = true;
+        document.getElementById('passwordMatchMsg').innerHTML = '';
+        
+        // Автоматически генерируем пароль при открытии
+        setTimeout(() => {
+            const newPassword = generatePassword();
+            document.getElementById('newPassword').value = newPassword;
+            document.getElementById('confirmPassword').value = newPassword;
+            checkPasswords();
+        }, 100);
+    });
+});
+</script>
+{% endblock %}
