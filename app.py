@@ -810,9 +810,8 @@ def upload_photos():
     
     saved_files = []
     errors = []
-    total_files = len(files)
     
-    for idx, file in enumerate(files):
+    for file in files:
         if file and file.filename:
             try:
                 original_filename = file.filename
@@ -840,24 +839,30 @@ def upload_photos():
                         os.remove(temp_path)
                     
                     if os.path.exists(final_path) and os.path.getsize(final_path) > 0:
-                        temp_upload = TempUpload(
-                            session_id=session_id,
-                            original_filename=original_filename,
-                            saved_filename=final_filename,
-                            file_size=os.path.getsize(final_path),
-                            file_format=format_index,
-                            format_index=int(format_index)
-                        )
-                        db.session.add(temp_upload)
-                        db.session.commit()
+                        # Проверяем, нет ли уже такого файла
+                        existing = TempUpload.query.filter_by(
+                            session_id=session_id, 
+                            saved_filename=final_filename
+                        ).first()
                         
-                        saved_files.append({
-                            'original_filename': original_filename,
-                            'saved_filename': final_filename,
-                            'size': os.path.getsize(final_path),
-                            'format': format_index,
-                            'progress': int((idx + 1) / total_files * 100)
-                        })
+                        if not existing:
+                            temp_upload = TempUpload(
+                                session_id=session_id,
+                                original_filename=original_filename,
+                                saved_filename=final_filename,
+                                file_size=os.path.getsize(final_path),
+                                file_format=format_index,
+                                format_index=int(format_index)
+                            )
+                            db.session.add(temp_upload)
+                            db.session.commit()
+                            
+                            saved_files.append({
+                                'original_filename': original_filename,
+                                'saved_filename': final_filename,
+                                'size': os.path.getsize(final_path),
+                                'format': format_index
+                            })
                     else:
                         errors.append(f'Ошибка конвертации файла {original_filename}')
                 else:
@@ -869,12 +874,10 @@ def upload_photos():
                 logger.error(f"Error processing file {file.filename}: {str(e)}")
                 errors.append(f'Ошибка обработки файла {file.filename}')
     
-    total_count = TempUpload.query.filter_by(session_id=session_id, format_index=int(format_index)).count()
-    
     return jsonify({
         'success': len(saved_files) > 0,
         'files': saved_files,
-        'total': total_count,
+        'total': len(saved_files),
         'errors': errors
     })
 
