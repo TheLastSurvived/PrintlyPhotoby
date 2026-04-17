@@ -49,6 +49,18 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['TEMP_FOLDER'], exist_ok=True)
 os.makedirs(os.path.join('instance'), exist_ok=True)
 
+
+@app.template_filter('from_json')
+def from_json_filter(json_string):
+    """Преобразует JSON строку в объект Python для использования в шаблонах"""
+    if not json_string:
+        return {}
+    try:
+        return json.loads(json_string)
+    except (json.JSONDecodeError, TypeError):
+        return {}
+
+
 # Инициализация расширений
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
@@ -593,6 +605,9 @@ def login():
     if request.method == 'POST':
         phone = request.form.get('phone')
         password = request.form.get('password')
+        
+        # Только цифры
+        phone = ''.join(c for c in phone if c.isdigit())
         
         user = User.query.filter_by(phone=phone).first()
         
@@ -1350,6 +1365,24 @@ def admin_reset_user_password(user_id):
     db.session.commit()
     
     return jsonify({'success': True})
+
+@app.route('/admin/login', methods=['GET', 'POST'])
+def admin_login():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        # Проверяем только админа
+        if username == 'admin':
+            user = User.query.filter_by(phone=username).first()
+            if user and user.check_password(password):
+                login_user(user)
+                return redirect(url_for('admin_dashboard'))
+        
+        flash('Неверный логин или пароль', 'danger')
+    
+    return render_template('admin/admin_login.html')
+
 
 if __name__ == '__main__':
     app.run(debug=True)

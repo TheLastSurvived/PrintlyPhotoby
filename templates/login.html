@@ -10,10 +10,11 @@
                 <div class="card form-card p-4">
                     <h2 class="text-center mb-4" style="color: var(--pink);">Вход в аккаунт</h2>
                     
-                    <form method="POST">
+                    <form method="POST" id="loginForm">
                         <div class="mb-3">
                             <label class="form-label">Номер телефона</label>
-                            <input type="text" class="form-control" name="phone" placeholder="+375 29 123-45-67" required>
+                            <input type="tel" class="form-control" name="phone" id="phoneInput" 
+                                   placeholder="375291234567" required pattern="[0-9]+" inputmode="numeric">
                         </div>
                         
                         <div class="mb-3">
@@ -27,21 +28,17 @@
                             Нет аккаунта? <a href="{{ url_for('register') }}">Зарегистрируйтесь</a>
                         </p>
                     </form>
-                    
-                    <!-- Блок с контактами для забывших пароль -->
-                    <div class="alert alert-info mt-4 text-center" style="background-color: #e8f4f8; border-color: #bee5eb;">
-                        <i class="bi bi-question-circle-fill"></i>
-                        <strong>Забыли пароль?</strong>
-                        <hr>
-                        <p class="mb-1">Обратитесь к администратору:</p>
-                        <p class="mb-0">
-                            <i class="bi bi-telegram"></i> Telegram: <strong>@printlyphoto</strong><br>
-                            <i class="bi bi-chat-dots-fill"></i> Viber: <strong>+375 (29) 247-27-16</strong>
-                        </p>
-                    </div>
                 </div>
             </div>
         </div>
     </div>
 </section>
+
+<script>
+document.getElementById('loginForm').addEventListener('submit', function(e) {
+    let phoneInput = document.getElementById('phoneInput');
+    // Удаляем все кроме цифр
+    phoneInput.value = phoneInput.value.replace(/\D/g, '');
+});
+</script>
 {% endblock %}
