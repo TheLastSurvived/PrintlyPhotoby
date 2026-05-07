@@ -12,8 +12,9 @@
                     
                     <form method="POST">
                         <div class="mb-3">
-                            <label class="form-label">Номер телефона *</label>
-                            <input type="tel" class="form-control" name="phone" placeholder="+375 29 123-45-67" required>
+                            <label class="form-label">Номер телефона</label>
+                            <input type="tel" class="form-control" name="phone" id="phoneInput" 
+                                   placeholder="375291234567" required pattern="[0-9]+" inputmode="numeric">
                         </div>
                         
                         <div class="mb-3">
@@ -70,4 +71,13 @@
         </div>
     </div>
 </div>
+
+
+<script>
+document.getElementById('loginForm').addEventListener('submit', function(e) {
+    let phoneInput = document.getElementById('phoneInput');
+    // Удаляем все кроме цифр
+    phoneInput.value = phoneInput.value.replace(/\D/g, '');
+});
+</script>
 {% endblock %}

@@ -202,11 +202,11 @@
                   <td>
                     {% if price.min_quantity > 0 %}{{ price.min_quantity }} шт{%
                     else %}—{% endif %}
-                  </td>
+                   </td>
                   <td>
                     {% if price.min_quantity > 0 %}{{ "%.2f"|format(price.price
                     * price.min_quantity) }} BYN{% else %}—{% endif %}
-                  </td>
+                   </td>
                 </tr>
                 {% endfor %} {% else %}
                 <tr>
@@ -714,56 +714,133 @@
 <section id="contacts" class="py-5 section-white">
   <div class="container">
     <h2 class="section-title text-center">Контакты</h2>
-    <div class="row g-4" id="contacts-container">
-      {% if contacts %} {% for contact in contacts %}
-      <div class="col-md-3">
-        <div class="contact-item text-center">
-          <div style="font-size: 2rem; margin-bottom: 10px">
-            {{ contact.icon|safe }}
-          </div>
-          <h5>{{ contact.title }}</h5>
-          <p class="mb-0">{{ contact.value }}</p>
+    <div class="row g-4 justify-content-center" id="contacts-container">
+      
+      <!-- === ВАРИАНТ 1: Контакты из БД (если есть) + Instagram === -->
+      {% if contacts %}
+        {% set contact_map = {} %}
+        {% for contact in contacts %}
+          {% set _ = contact_map.update({contact.title: contact}) %}
+        {% endfor %}
+
+        <!-- 1. Адрес (кликабельно - Яндекс Карты) -->
+        <div class="col-md-2 col-sm-4 col-6">
+          <a href="https://yandex.by/maps/?text={{ contact_map['Адрес'].value if contact_map['Адрес'] else 'г. Минск' }}" target="_blank" rel="noopener noreferrer" style="text-decoration: none; color: inherit; display: block;">
+            <div class="contact-item text-center p-3 rounded-3 h-100 transition-hover">
+              <div class="contact-icon mb-2" style="font-size: 2rem;">{{ contact_map['Адрес'].icon|safe if contact_map['Адрес'] else '📍' }}</div>
+              <h5 class="h6 fw-bold mb-1">Адрес</h5>
+              <p class="mb-0 small">{{ contact_map['Адрес'].value if contact_map['Адрес'] else 'г. Минск' }}</p>
+            </div>
+          </a>
         </div>
-      </div>
-      {% endfor %} {% else %}
-      <div class="col-md-3">
-        <div class="contact-item text-center">
-          <div style="font-size: 2rem; margin-bottom: 10px">📍</div>
-          <h5>Адрес</h5>
-          <p class="mb-0">г. Минск</p>
+        
+        <!-- 2. Телефон (кликабельно - tel:) -->
+        <div class="col-md-2 col-sm-4 col-6">
+          <a href="tel:{{ contact_map['Телефон'].value if contact_map['Телефон'] else '+375292472716' }}" style="text-decoration: none; color: inherit; display: block;">
+            <div class="contact-item text-center p-3 rounded-3 h-100 transition-hover">
+              <div class="contact-icon mb-2" style="font-size: 2rem;">{{ contact_map['Телефон'].icon|safe if contact_map['Телефон'] else '<i class="bi bi-telephone-fill"></i>' }}</div>
+              <h5 class="h6 fw-bold mb-1">Телефон</h5>
+              <p class="mb-0 small">{{ contact_map['Телефон'].value if contact_map['Телефон'] else '+375 (29) 247-27-16' }}</p>
+            </div>
+          </a>
         </div>
-      </div>
-      <div class="col-md-3">
-        <div class="contact-item text-center">
-          <div style="font-size: 2rem; margin-bottom: 10px">
-            <i class="bi bi-telephone-fill"></i>
-          </div>
-          <h5>Телефон</h5>
-          <p class="mb-0">+375 (29) 247-27-16</p>
+
+        <!-- 3. Telegram (кликабельно - tg:) -->
+        <div class="col-md-2 col-sm-4 col-6">
+          <a href="https://t.me/{{ contact_map['Telegram'].value|replace('@','') if contact_map['Telegram'] else 'printlyphoto' }}" target="_blank" rel="noopener noreferrer" style="text-decoration: none; color: inherit; display: block;">
+            <div class="contact-item text-center p-3 rounded-3 h-100 transition-hover">
+              <div class="contact-icon mb-2" style="font-size: 2rem;">{{ contact_map['Telegram'].icon|safe if contact_map['Telegram'] else '<i class="bi bi-telegram"></i>' }}</div>
+              <h5 class="h6 fw-bold mb-1">Telegram</h5>
+              <p class="mb-0 small">{{ contact_map['Telegram'].value if contact_map['Telegram'] else '@printlyphoto' }}</p>
+            </div>
+          </a>
         </div>
-      </div>
-      <div class="col-md-3">
-        <div class="contact-item text-center">
-          <div style="font-size: 2rem; margin-bottom: 10px">
-            <i class="bi bi-telegram"></i>
-          </div>
-          <h5>Telegram</h5>
-          <p class="mb-0">@printlyphoto</p>
+
+        <!-- 4. Viber (кликабельно - viber://) -->
+        <div class="col-md-2 col-sm-4 col-6">
+          <a href="viber://chat?number={{ contact_map['Viber'].value if contact_map['Viber'] else '+375292472716' }}" style="text-decoration: none; color: inherit; display: block;">
+            <div class="contact-item text-center p-3 rounded-3 h-100 transition-hover">
+              <div class="contact-icon mb-2" style="font-size: 2rem;">{{ contact_map['Viber'].icon|safe if contact_map['Viber'] else '<i class="bi bi-chat-dots-fill"></i>' }}</div>
+              <h5 class="h6 fw-bold mb-1">Viber</h5>
+              <p class="mb-0 small">{{ contact_map['Viber'].value if contact_map['Viber'] else '+375 (29) 247-27-16' }}</p>
+            </div>
+          </a>
         </div>
-      </div>
-      <div class="col-md-3">
-        <div class="contact-item text-center">
-          <div style="font-size: 2rem; margin-bottom: 10px">
-            <i class="bi bi-chat-dots-fill"></i>
-          </div>
-          <h5>Viber</h5>
-          <p class="mb-0">+375 (29) 247-27-16</p>
+
+        <!-- 5. Instagram (кликабельно) -->
+        <div class="col-md-2 col-sm-4 col-6">
+          <a href="https://www.instagram.com/printly.photoby/" target="_blank" rel="noopener noreferrer" style="text-decoration: none; color: inherit; display: block;">
+            <div class="contact-item text-center p-3 rounded-3 h-100 transition-hover">
+              <div class="contact-icon mb-2" style="font-size: 2rem;"><i class="bi bi-instagram"></i></div>
+              <h5 class="h6 fw-bold mb-1">Instagram</h5>
+              <p class="mb-0 small">@printly.photoby</p>
+            </div>
+          </a>
         </div>
-      </div>
+      
+      <!-- === ВАРИАНТ 2: Контакты по умолчанию (если нет БД) ВСЕ КЛИКАБЕЛЬНЫЕ === -->
+      {% else %}
+        
+        <!-- 1. Адрес -->
+        <div class="col-md-2 col-sm-4 col-6">
+          <a href="https://yandex.by/maps/?text=г. Минск" target="_blank" rel="noopener noreferrer" style="text-decoration: none; color: inherit; display: block;">
+            <div class="contact-item text-center p-3 rounded-3 h-100 transition-hover">
+              <div class="contact-icon mb-2" style="font-size: 2rem;">📍</div>
+              <h5 class="h6 fw-bold mb-1">Адрес</h5>
+              <p class="mb-0 small">г. Минск</p>
+            </div>
+          </a>
+        </div>
+        
+        <!-- 2. Телефон -->
+        <div class="col-md-2 col-sm-4 col-6">
+          <a href="tel:+375292472716" style="text-decoration: none; color: inherit; display: block;">
+            <div class="contact-item text-center p-3 rounded-3 h-100 transition-hover">
+              <div class="contact-icon mb-2" style="font-size: 2rem;"><i class="bi bi-telephone-fill"></i></div>
+              <h5 class="h6 fw-bold mb-1">Телефон</h5>
+              <p class="mb-0 small">+375 (29) 247-27-16</p>
+            </div>
+          </a>
+        </div>
+
+        <!-- 3. Telegram -->
+        <div class="col-md-2 col-sm-4 col-6">
+          <a href="https://t.me/printlyphoto" target="_blank" rel="noopener noreferrer" style="text-decoration: none; color: inherit; display: block;">
+            <div class="contact-item text-center p-3 rounded-3 h-100 transition-hover">
+              <div class="contact-icon mb-2" style="font-size: 2rem;"><i class="bi bi-telegram"></i></div>
+              <h5 class="h6 fw-bold mb-1">Telegram</h5>
+              <p class="mb-0 small">@printlyphoto</p>
+            </div>
+          </a>
+        </div>
+
+        <!-- 4. Viber -->
+        <div class="col-md-2 col-sm-4 col-6">
+          <a href="viber://chat?number=375292472716" style="text-decoration: none; color: inherit; display: block;">
+            <div class="contact-item text-center p-3 rounded-3 h-100 transition-hover">
+              <div class="contact-icon mb-2" style="font-size: 2rem;"><i class="bi bi-chat-dots-fill"></i></div>
+              <h5 class="h6 fw-bold mb-1">Viber</h5>
+              <p class="mb-0 small">+375 (29) 247-27-16</p>
+            </div>
+          </a>
+        </div>
+
+        <!-- 5. Instagram -->
+        <div class="col-md-2 col-sm-4 col-6">
+          <a href="https://www.instagram.com/printly.photoby/" target="_blank" rel="noopener noreferrer" style="text-decoration: none; color: inherit; display: block;">
+            <div class="contact-item text-center p-3 rounded-3 h-100 transition-hover">
+              <div class="contact-icon mb-2" style="font-size: 2rem;"><i class="bi bi-instagram"></i></div>
+              <h5 class="h6 fw-bold mb-1">Instagram</h5>
+              <p class="mb-0 small">@printly.photoby</p>
+            </div>
+          </a>
+        </div>
       {% endif %}
     </div>
+
+    <!-- Кнопка редактирования для админа -->
     {% if current_user.is_admin %}
-    <div class="text-center mt-4">
+    <div class="text-center mt-5">
       <button
         type="button"
         class="btn btn-sm"
@@ -842,7 +919,7 @@
   </div>
 </div>
 
-<!-- Модальное окно редактирования контактов -->
+<!-- Модальное окно редактирования контактов (обновлено, включает Instagram) -->
 <div class="modal fade" id="editContactsModal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -890,6 +967,16 @@
               class="form-control"
               name="viber"
               value="{{ contacts[3].value if contacts and contacts|length > 3 else '+375 (29) 247-27-16' }}"
+            />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Instagram (ссылка)</label>
+            <input
+              type="url"
+              class="form-control"
+              name="instagram"
+              value="https://www.instagram.com/printly.photoby/"
+              placeholder="https://www.instagram.com/username/"
             />
           </div>
         </div>

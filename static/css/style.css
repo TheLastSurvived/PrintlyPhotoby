@@ -350,3 +350,36 @@ footer {
 #fileCount {
   transition: color 0.3s ease;
 }
+
+
+  .contact-item {
+        background: white;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      }
+      .contact-item:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        background: linear-gradient(135deg, #fff, #fef5e8);
+      }
+      .contact-icon {
+        transition: transform 0.3s ease;
+        display: inline-block;
+      }
+      .contact-item:hover .contact-icon {
+        transform: scale(1.1);
+      }
+      @media (max-width: 576px) {
+        .contact-item {
+          padding: 0.75rem !important;
+        }
+        .contact-icon {
+          font-size: 1.5rem !important;
+        }
+        h5.h6 {
+          font-size: 0.75rem !important;
+        }
+        p.small {
+          font-size: 0.65rem !important;
+        }
+      }
