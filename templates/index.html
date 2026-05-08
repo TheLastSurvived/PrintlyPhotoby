@@ -1361,6 +1361,7 @@
     if (selectFilesBtn)
       selectFilesBtn.addEventListener("click", (e) => {
         e.preventDefault();
+        e.stopPropagation();
         fileInput.click();
       });
     if (fileInput)
