@@ -337,61 +337,83 @@ def create_zip_from_photos(order_id):
     order = Order.query.get_or_404(order_id)
     zip_buffer = BytesIO()
     
-    # Словарь для сопоставления индекса формата с его названием
-    format_names = {
-        '0': '10x15',
-        '1': '10x10', 
-        '2': '9x13',
-        '3': 'polaroid_10x12',
-        '4': 'fuji_7x10',
-        '5': 'minipolaroid_7x10',
-        '6': '5x15',
-        'other': 'other_formats'
-    }
+    # Создаем маппинг: индекс формата -> название формата для отображения
+    # Используем реальные данные из OrderItem
+    format_mapping = {}
+    for idx, item in enumerate(order.items):
+        # Получаем читаемое название формата для папки
+        format_name = item.format_name
+        
+        # Приводим к безопасному имени папки
+        folder_name = format_name.replace('/', '_').replace('\\', '_')
+        # Заменяем пробелы на подчеркивания и убираем спецсимволы
+        folder_name = ''.join(c if c.isalnum() or c in '_-' else '_' for c in folder_name)
+        
+        format_mapping[str(idx)] = {
+            'folder_name': folder_name,
+            'display_name': format_name,
+            'quantity': item.quantity
+        }
+    
+    # Также создаем маппинг для других форматов, которые могли быть использованы
+    # (на случай, если photo.format хранит не индекс, а ключ формата)
+    price_formats = {}
+    for price in Price.query.filter_by(is_active=True).all():
+        folder_name = price.format_name.replace('/', '_').replace('\\', '_')
+        folder_name = ''.join(c if c.isalnum() or c in '_-' else '_' for c in folder_name)
+        price_formats[price.format_key] = {
+            'folder_name': folder_name,
+            'display_name': price.format_name
+        }
     
     with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
         # Группируем фото по форматам
         photos_by_format = {}
         
         for photo in order.photos:
-            # Получаем название формата
+            # Определяем, к какому формату относится фото
             format_key = photo.format if photo.format else 'other'
+            folder_name = None
+            display_name = None
             
-            # Пытаемся получить человекочитаемое название
-            if format_key.isdigit():
-                format_name = format_names.get(format_key, f'format_{format_key}')
+            # Сначала пробуем найти по индексу (если format_key - цифра)
+            if format_key.isdigit() and format_key in format_mapping:
+                folder_name = format_mapping[format_key]['folder_name']
+                display_name = format_mapping[format_key]['display_name']
+            # Пробуем найти по ключу формата из Price
+            elif format_key in price_formats:
+                folder_name = price_formats[format_key]['folder_name']
+                display_name = price_formats[format_key]['display_name']
             else:
-                format_name = format_names.get(format_key, format_key)
+                # Пробуем найти соответствие по названию формата из OrderItem
+                found = False
+                for idx, item in enumerate(order.items):
+                    if item.format_name and item.format_name.lower() in format_key.lower():
+                        folder_name = format_mapping[str(idx)]['folder_name']
+                        display_name = format_mapping[str(idx)]['display_name']
+                        found = True
+                        break
+                
+                if not found:
+                    # Используем общую папку для неопределенных форматов
+                    folder_name = 'other_formats'
+                    display_name = 'Другие форматы'
             
-            if format_name not in photos_by_format:
-                photos_by_format[format_name] = []
-            photos_by_format[format_name].append(photo)
+            if folder_name not in photos_by_format:
+                photos_by_format[folder_name] = {
+                    'photos': [],
+                    'display_name': display_name
+                }
+            photos_by_format[folder_name]['photos'].append(photo)
         
-        # Также группируем по форматам из заказа (OrderItem)
-        # Это нужно для соответствия между фото и форматами
-        format_mapping = {}
-        for idx, item in enumerate(order.items):
-            format_key = str(idx)
-            if item.format_name == '10x15':
-                format_mapping[format_key] = '10x15'
-            elif item.format_name == '10x10':
-                format_mapping[format_key] = '10x10'
-            elif item.format_name == '9x13':
-                format_mapping[format_key] = '9x13'
-            elif item.format_name == 'polaroid-10x12':
-                format_mapping[format_key] = 'polaroid_10x12'
-            elif item.format_name == 'fuji-7x10':
-                format_mapping[format_key] = 'fuji_7x10'
-            elif item.format_name == 'minipolaroid-7x10':
-                format_mapping[format_key] = 'minipolaroid_7x10'
-            elif item.format_name == '5x15':
-                format_mapping[format_key] = '5x15'
-            else:
-                format_mapping[format_key] = 'other_formats'
-        
-        # Создаем папки и добавляем файлы
-        for format_name, photos in photos_by_format.items():
-            # Создаем папку для формата
+        # Добавляем файлы в архив
+        for folder_name, data in photos_by_format.items():
+            photos = data['photos']
+            display_name = data['display_name']
+            
+            # Логируем для отладки
+            logger.info(f"Creating folder '{folder_name}' for format '{display_name}' with {len(photos)} photos")
+            
             for photo in photos:
                 photo_path = os.path.join(app.config['UPLOAD_FOLDER'], photo.saved_filename)
                 
@@ -413,22 +435,22 @@ def create_zip_from_photos(order_id):
                         
                         if jpg_bytes:
                             # Добавляем в архив с путем к папке
-                            archive_path = f"{format_name}/{new_filename}"
+                            archive_path = f"{folder_name}/{new_filename}"
                             zip_file.writestr(archive_path, jpg_bytes.getvalue())
                             logger.debug(f"Added {archive_path} to zip")
                         else:
                             # Если конвертация не удалась, пробуем добавить оригинальный файл
                             logger.warning(f"Failed to convert {photo.original_filename}, adding original")
-                            archive_path = f"{format_name}/{photo.original_filename}"
+                            archive_path = f"{folder_name}/{photo.original_filename}"
                             zip_file.write(photo_path, archive_path)
                             
                     except Exception as e:
                         logger.error(f"Error processing photo {photo.original_filename}: {e}")
                         try:
-                            archive_path = f"{format_name}/{photo.original_filename}"
+                            archive_path = f"{folder_name}/{photo.original_filename}"
                             zip_file.write(photo_path, archive_path)
-                        except:
-                            logger.error(f"Failed to add original file {photo.original_filename}")
+                        except Exception as write_err:
+                            logger.error(f"Failed to add original file {photo.original_filename}: {write_err}")
                 else:
                     logger.warning(f"Photo file not found: {photo_path}")
     

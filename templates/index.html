@@ -1071,22 +1071,19 @@
     // Загрузка фотографий
     let currentFormatIndex = 0;
     let uploadedFiles = {};
+    let itemCount = document.querySelectorAll('.order-item').length;
 
     function updateQuantityAndPrice(formatIndex) {
-      const item = document
-        .querySelector(
-          `.order-item .upload-photos-btn[data-format-index="${formatIndex}"]`,
-        )
-        .closest(".order-item");
+      const item = document.querySelector(`.upload-photos-btn[data-format-index="${formatIndex}"]`)?.closest(".order-item");
+      if (!item) return;
+      
       const formatSelect = item.querySelector(".format-select");
       const quantityInput = item.querySelector(".quantity-input");
       const subtotalInput = item.querySelector(".item-subtotal");
       const minWarning = document.getElementById(`min-warning-${formatIndex}`);
 
       const selectedFormat = formatSelect.value;
-      const photoCount = uploadedFiles[formatIndex]
-        ? uploadedFiles[formatIndex].length
-        : 0;
+      const photoCount = uploadedFiles[formatIndex] ? uploadedFiles[formatIndex].length : 0;
 
       // Обновляем количество
       quantityInput.value = photoCount;
@@ -1115,10 +1112,9 @@
       let total = 0;
       let totalPhotos = 0;
 
-      document.querySelectorAll(".order-item").forEach((item, idx) => {
+      document.querySelectorAll(".order-item").forEach((item) => {
         const formatSelect = item.querySelector(".format-select");
-        const quantity =
-          parseInt(item.querySelector(".quantity-input").value) || 0;
+        const quantity = parseInt(item.querySelector(".quantity-input").value) || 0;
         const selectedOption = formatSelect.options[formatSelect.selectedIndex];
         let price = 0;
 
@@ -1163,29 +1159,34 @@
       }
     }
 
-    // Инициализация кнопок загрузки
-    function initUploadButtons() {
-      document.querySelectorAll(".upload-photos-btn").forEach((btn) => {
-        const newBtn = btn.cloneNode(true);
-        btn.parentNode.replaceChild(newBtn, btn);
+    // Функция для привязки обработчиков к кнопке загрузки
+    function bindUploadButton(btn, formatIndex) {
+      const newBtn = btn.cloneNode(true);
+      btn.parentNode.replaceChild(newBtn, btn);
+      
+      newBtn.dataset.formatIndex = formatIndex;
+      newBtn.addEventListener("click", function (e) {
+        e.preventDefault();
+        currentFormatIndex = parseInt(this.dataset.formatIndex);
+        const modal = new bootstrap.Modal(document.getElementById("uploadModal"));
+        modal.show();
+        if (uploadedFiles[currentFormatIndex] && uploadedFiles[currentFormatIndex].length > 0) {
+          displayUploadedFiles(currentFormatIndex);
+        } else {
+          document.getElementById("uploadedFilesList").innerHTML = '<p class="text-muted">Нет загруженных файлов</p>';
+        }
+      });
+    }
 
-        newBtn.addEventListener("click", function (e) {
-          e.preventDefault();
-          currentFormatIndex = parseInt(this.dataset.formatIndex);
-          const modal = new bootstrap.Modal(
-            document.getElementById("uploadModal"),
-          );
-          modal.show();
-          if (
-            uploadedFiles[currentFormatIndex] &&
-            uploadedFiles[currentFormatIndex].length > 0
-          ) {
-            displayUploadedFiles(currentFormatIndex);
-          } else {
-            document.getElementById("uploadedFilesList").innerHTML =
-              '<p class="text-muted">Нет загруженных файлов</p>';
-          }
-        });
+    // Инициализация всех кнопок загрузки
+    function initUploadButtons() {
+      document.querySelectorAll(".upload-photos-btn").forEach((btn, idx) => {
+        let formatIndex = btn.dataset.formatIndex;
+        if (formatIndex === undefined) {
+          formatIndex = idx;
+          btn.dataset.formatIndex = formatIndex;
+        }
+        bindUploadButton(btn, parseInt(formatIndex));
       });
     }
 
@@ -1203,7 +1204,7 @@
           <div class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded">
             <div>
               <i class="bi bi-file-image me-2"></i>
-              <small>${file.original_filename}</small><br>
+              <small>${escapeHtml(file.original_filename)}</small><br>
               <small class="text-muted">${(file.size / 1024).toFixed(1)} KB</small>
             </div>
             <button type="button" class="btn btn-sm btn-link text-danger delete-file-btn" 
@@ -1225,6 +1226,17 @@
         });
       });
     }
+    
+    // Функция для экранирования HTML
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+      });
+    }
 
     window.deleteFile = function (filename, formatIndex, fileIndex) {
       fetch("/delete_upload/" + encodeURIComponent(filename), {
@@ -1235,9 +1247,7 @@
           if (data.success && uploadedFiles[formatIndex]) {
             uploadedFiles[formatIndex].splice(fileIndex, 1);
             displayUploadedFiles(formatIndex);
-            const photoCountSpan = document.getElementById(
-              `photo-count-${formatIndex}`,
-            );
+            const photoCountSpan = document.getElementById(`photo-count-${formatIndex}`);
             if (photoCountSpan)
               photoCountSpan.textContent = `${uploadedFiles[formatIndex]?.length || 0} фото`;
             updateQuantityAndPrice(formatIndex);
@@ -1249,21 +1259,9 @@
     function handleFiles(files) {
       if (!files || files.length === 0) return;
 
-      const allowedExtensions = [
-        "jpg",
-        "jpeg",
-        "png",
-        "gif",
-        "bmp",
-        "tiff",
-        "webp",
-        "heic",
-        "heif",
-      ];
+      const allowedExtensions = ["jpg", "jpeg", "png", "gif", "bmp", "tiff", "webp", "heic", "heif"];
       const validFiles = [];
-      const currentCount = uploadedFiles[currentFormatIndex]
-        ? uploadedFiles[currentFormatIndex].length
-        : 0;
+      const currentCount = uploadedFiles[currentFormatIndex] ? uploadedFiles[currentFormatIndex].length : 0;
 
       if (currentCount + files.length > 100) {
         alert(`Максимум 100 фото на заказ. У вас уже ${currentCount} фото.`);
@@ -1315,13 +1313,9 @@
           if (data.success) {
             if (!uploadedFiles[currentFormatIndex])
               uploadedFiles[currentFormatIndex] = [];
-            uploadedFiles[currentFormatIndex] = uploadedFiles[
-              currentFormatIndex
-            ].concat(data.files);
+            uploadedFiles[currentFormatIndex] = uploadedFiles[currentFormatIndex].concat(data.files);
 
-            const photoCountSpan = document.getElementById(
-              `photo-count-${currentFormatIndex}`,
-            );
+            const photoCountSpan = document.getElementById(`photo-count-${currentFormatIndex}`);
             if (photoCountSpan)
               photoCountSpan.textContent = `${uploadedFiles[currentFormatIndex].length} фото`;
 
@@ -1333,6 +1327,7 @@
         })
         .catch((error) => {
           clearInterval(progressInterval);
+          console.error("Upload error:", error);
           alert("Ошибка загрузки файлов");
           progressBar.style.display = "none";
         });
@@ -1344,7 +1339,7 @@
     const selectFilesBtn = document.getElementById("selectFilesBtn");
 
     if (uploadArea) {
-      uploadArea.addEventListener("click", () => fileInput.click());
+      // Убираем клик на всю область, оставляем только на кнопку
       uploadArea.addEventListener("dragover", (e) => {
         e.preventDefault();
         uploadArea.style.backgroundColor = "rgba(255, 105, 180, 0.1)";
@@ -1358,72 +1353,109 @@
         handleFiles(e.dataTransfer.files);
       });
     }
-    if (selectFilesBtn)
+    if (selectFilesBtn) {
       selectFilesBtn.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
         fileInput.click();
       });
-    if (fileInput)
+    }
+    if (fileInput) {
       fileInput.addEventListener("change", (e) => {
         handleFiles(e.target.files);
         fileInput.value = "";
       });
+    }
 
     const saveUploadedBtn = document.getElementById("saveUploadedBtn");
-    if (saveUploadedBtn)
-      saveUploadedBtn.addEventListener("click", () =>
-        bootstrap.Modal.getInstance(
-          document.getElementById("uploadModal"),
-        )?.hide(),
-      );
+    if (saveUploadedBtn) {
+      saveUploadedBtn.addEventListener("click", () => {
+        bootstrap.Modal.getInstance(document.getElementById("uploadModal"))?.hide();
+      });
+    }
 
     // Добавление нового формата
-    let itemCount = 1;
     const orderItems = document.getElementById("order-items");
     const addBtn = document.getElementById("add-format-btn");
 
-    if (addBtn) {
-      addBtn.addEventListener("click", function () {
-        const firstItem = document.querySelector(".order-item");
-        const newItem = firstItem.cloneNode(true);
-        newItem.querySelector(".format-select").value = "";
-        newItem.querySelector(".quantity-input").value = "";
-        newItem.querySelector(".item-subtotal").value = "0.00 BYN";
-
-        const uploadBtn = newItem.querySelector(".upload-photos-btn");
-        uploadBtn.dataset.formatIndex = itemCount;
-
-        const photoCountSpan = newItem.querySelector(".photo-count");
-        photoCountSpan.id = `photo-count-${itemCount}`;
-        photoCountSpan.textContent = "0 фото";
-
-        const minWarning = newItem.querySelector(".min-warning");
-        if (minWarning) minWarning.id = `min-warning-${itemCount}`;
-
-        uploadBtn.addEventListener("click", function (e) {
-          e.preventDefault();
-          currentFormatIndex = parseInt(this.dataset.formatIndex);
-          const modal = new bootstrap.Modal(
-            document.getElementById("uploadModal"),
-          );
-          modal.show();
-          if (uploadedFiles[currentFormatIndex]?.length > 0)
-            displayUploadedFiles(currentFormatIndex);
-          else
-            document.getElementById("uploadedFilesList").innerHTML =
-              '<p class="text-muted">Нет загруженных файлов</p>';
-        });
-
-        const removeBtn = newItem.querySelector(".remove-item");
-        removeBtn.style.display = "block";
+    function addNewFormat() {
+      const firstItem = document.querySelector(".order-item");
+      if (!firstItem) return;
+      
+      const newItem = firstItem.cloneNode(true);
+      
+      // Очищаем значения
+      const formatSelect = newItem.querySelector(".format-select");
+      // Выбираем первый доступный формат вместо пустого
+      if (formatSelect.options.length > 0) {
+        formatSelect.selectedIndex = 0;
+      }
+      
+      newItem.querySelector(".quantity-input").value = "";
+      newItem.querySelector(".item-subtotal").value = "0.00 BYN";
+      
+      // Удаляем старый ID и создаем новый
+      const uploadBtn = newItem.querySelector(".upload-photos-btn");
+      const newFormatIndex = itemCount;
+      uploadBtn.dataset.formatIndex = newFormatIndex;
+      
+      // Обновляем photo-count
+      const photoCountSpan = newItem.querySelector(".photo-count");
+      photoCountSpan.id = `photo-count-${newFormatIndex}`;
+      photoCountSpan.textContent = "0 фото";
+      
+      // Обновляем min-warning если есть
+      const minWarning = newItem.querySelector(".min-warning");
+      if (minWarning) {
+        minWarning.id = `min-warning-${newFormatIndex}`;
+        minWarning.style.display = "none";
+      }
+      
+      // Добавляем кнопку удаления если её нет
+      let removeBtn = newItem.querySelector(".remove-item");
+      if (!removeBtn) {
+        const btnContainer = newItem.querySelector(".mt-2");
+        if (btnContainer) {
+          removeBtn = document.createElement("button");
+          removeBtn.type = "button";
+          removeBtn.className = "btn btn-sm btn-link text-danger remove-item ms-2";
+          removeBtn.innerHTML = '<i class="bi bi-trash"></i> Удалить формат';
+          removeBtn.style.display = "inline-block";
+          btnContainer.appendChild(removeBtn);
+        }
+      } else {
+        removeBtn.style.display = "inline-block";
+      }
+      
+      // Привязываем обработчик удаления
+      if (removeBtn) {
+        removeBtn = newItem.querySelector(".remove-item");
         removeBtn.addEventListener("click", function () {
+          // Удаляем все загруженные файлы для этого формата
+          if (uploadedFiles[newFormatIndex]) {
+            // Опционально: удалить файлы с сервера
+            delete uploadedFiles[newFormatIndex];
+          }
           newItem.remove();
           calculateTotal();
         });
+      }
+      
+      // Привязываем обработчик загрузки
+      bindUploadButton(uploadBtn, newFormatIndex);
+      
+      // Добавляем элемент на страницу
+      orderItems.appendChild(newItem);
+      itemCount++;
+    }
 
-        orderItems.appendChild(newItem);
-        itemCount++;
+    if (addBtn) {
+      // Удаляем старый обработчик и добавляем новый
+      const newAddBtn = addBtn.cloneNode(true);
+      addBtn.parentNode.replaceChild(newAddBtn, addBtn);
+      newAddBtn.addEventListener("click", function (e) {
+        e.preventDefault();
+        addNewFormat();
       });
     }
 
@@ -1432,31 +1464,36 @@
       if (e.target.classList.contains("format-select")) {
         const item = e.target.closest(".order-item");
         const btn = item.querySelector(".upload-photos-btn");
-        const idx = parseInt(btn.dataset.formatIndex);
-        updateQuantityAndPrice(idx);
+        if (btn && btn.dataset.formatIndex) {
+          const idx = parseInt(btn.dataset.formatIndex);
+          updateQuantityAndPrice(idx);
+        }
       }
     });
 
+    // Инициализируем существующие кнопки
     initUploadButtons();
 
     // Проверка перед отправкой
     const orderForm = document.getElementById("orderForm");
     if (orderForm) {
       orderForm.addEventListener("submit", function (e) {
-        let hasPhotos = true;
+        let hasError = false;
         document.querySelectorAll(".order-item").forEach((item, idx) => {
           const formatSelect = item.querySelector(".format-select");
-          const photoCount = uploadedFiles[idx] ? uploadedFiles[idx].length : 0;
-          if (formatSelect.value && photoCount === 0) {
-            alert(
-              `Для формата ${formatSelect.options[formatSelect.selectedIndex]?.text} не загружены фотографии!`,
-            );
-            hasPhotos = false;
-            e.preventDefault();
-            return;
+          if (formatSelect && formatSelect.value) {
+            const btn = item.querySelector(".upload-photos-btn");
+            const formatIndex = btn ? parseInt(btn.dataset.formatIndex) : idx;
+            const photoCount = uploadedFiles[formatIndex] ? uploadedFiles[formatIndex].length : 0;
+            if (photoCount === 0) {
+              alert(`Для формата "${formatSelect.options[formatSelect.selectedIndex]?.text}" не загружены фотографии!`);
+              hasError = true;
+              e.preventDefault();
+              return;
+            }
           }
         });
-        if (!hasPhotos) e.preventDefault();
+        if (hasError) e.preventDefault();
       });
     }
   });
