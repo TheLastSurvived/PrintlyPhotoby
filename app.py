@@ -806,7 +806,7 @@ def track_order(order_number):
     
     tracking_urls = {
         'belpost': f'https://www.belpost.by/by/Otsleditotpravleniye?number={order.tracking_number}' if order.tracking_number else None,
-        'europost': f'https://evropochta.by/tracking/{order.tracking_number}' if order.tracking_number else None
+        'europost': f'https://evropochta.by' if order.tracking_number else None
     }
     
     return render_template('track_order.html', order=order, tracking_urls=tracking_urls)
