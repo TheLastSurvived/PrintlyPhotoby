@@ -38,39 +38,28 @@ document.addEventListener("DOMContentLoaded", function () {
     let itemCount = document.querySelectorAll('.order-item').length;
 
     function updateQuantityAndPrice(formatIndex) {
-      const item = document.querySelector(`.upload-photos-btn[data-format-index="${formatIndex}"]`)?.closest(".order-item");
-      if (!item) return;
-      
-      const formatSelect = item.querySelector(".format-select");
-      const quantityInput = item.querySelector(".quantity-input");
-      const subtotalInput = item.querySelector(".item-subtotal");
-      const minWarning = document.getElementById(`min-warning-${formatIndex}`);
+  const item = document.querySelector(`.upload-photos-btn[data-format-index="${formatIndex}"]`)?.closest(".order-item");
+  if (!item) return;
+  
+  const formatSelect = item.querySelector(".format-select");
+  const quantityInput = item.querySelector(".quantity-input");
+  const subtotalInput = item.querySelector(".item-subtotal");
 
-      const selectedFormat = formatSelect.value;
-      const photoCount = uploadedFiles[formatIndex] ? uploadedFiles[formatIndex].length : 0;
+  const selectedFormat = formatSelect.value;
+  const photoCount = uploadedFiles[formatIndex] ? uploadedFiles[formatIndex].length : 0;
 
-      // Обновляем количество
-      quantityInput.value = photoCount;
+  // Обновляем количество
+  quantityInput.value = photoCount;
 
-      // Получаем цену
-      const price = formatData[selectedFormat]?.price || 0;
-      const minQty = formatData[selectedFormat]?.minQty || 0;
+  // Получаем цену
+  const price = formatData[selectedFormat]?.price || 0;
 
-      // Считаем сумму
-      const subtotal = price * photoCount;
-      subtotalInput.value = subtotal.toFixed(2) + " BYN";
+  // Считаем сумму
+  const subtotal = price * photoCount;
+  subtotalInput.value = subtotal.toFixed(2) + " BYN";
 
-      // Показываем предупреждение о минимальном количестве
-      if (minWarning && minQty > 0 && photoCount > 0 && photoCount < minQty) {
-        const needCount = minQty - photoCount;
-        minWarning.querySelector(".need-count").textContent = needCount;
-        minWarning.style.display = "inline";
-      } else if (minWarning) {
-        minWarning.style.display = "none";
-      }
-
-      calculateTotal();
-    }
+  calculateTotal();
+}
     
     function calculateTotal() {
       let total = 0;
@@ -369,11 +358,11 @@ document.addEventListener("DOMContentLoaded", function () {
       photoCountSpan.textContent = "0 фото";
       
       // Обновляем min-warning если есть
-      const minWarning = newItem.querySelector(".min-warning");
-      if (minWarning) {
-        minWarning.id = `min-warning-${newFormatIndex}`;
-        minWarning.style.display = "none";
-      }
+     // const minWarning = newItem.querySelector(".min-warning");
+     // if (minWarning) {
+     //   minWarning.id = `min-warning-${newFormatIndex}`;
+    //    minWarning.style.display = "none";
+    //  }
       
       // Добавляем кнопку удаления если её нет
       let removeBtn = newItem.querySelector(".remove-item");
@@ -440,24 +429,36 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Проверка перед отправкой
     const orderForm = document.getElementById("orderForm");
-    if (orderForm) {
-      orderForm.addEventListener("submit", function (e) {
-        let hasError = false;
-        document.querySelectorAll(".order-item").forEach((item, idx) => {
-          const formatSelect = item.querySelector(".format-select");
-          if (formatSelect && formatSelect.value) {
-            const btn = item.querySelector(".upload-photos-btn");
-            const formatIndex = btn ? parseInt(btn.dataset.formatIndex) : idx;
-            const photoCount = uploadedFiles[formatIndex] ? uploadedFiles[formatIndex].length : 0;
-            if (photoCount === 0) {
-              alert(`Для формата "${formatSelect.options[formatSelect.selectedIndex]?.text}" не загружены фотографии!`);
-              hasError = true;
-              e.preventDefault();
-              return;
-            }
-          }
-        });
-        if (hasError) e.preventDefault();
-      });
+if (orderForm) {
+  orderForm.addEventListener("submit", function (e) {
+    let hasError = false;
+    let hasAnyPhotos = false;
+    
+    document.querySelectorAll(".order-item").forEach((item, idx) => {
+      const formatSelect = item.querySelector(".format-select");
+      if (formatSelect && formatSelect.value) {
+        const btn = item.querySelector(".upload-photos-btn");
+        const formatIndex = btn ? parseInt(btn.dataset.formatIndex) : idx;
+        const photoCount = uploadedFiles[formatIndex] ? uploadedFiles[formatIndex].length : 0;
+        
+        if (photoCount > 0) {
+          hasAnyPhotos = true;
+        }
+        
+        // Только предупреждение, но не блокировка
+        if (photoCount === 0) {
+          console.warn(`Для формата "${formatSelect.options[formatSelect.selectedIndex]?.text}" не загружены фотографии`);
+        }
+      }
+    });
+    
+    if (!hasAnyPhotos) {
+      alert("Загрузите хотя бы одну фотографию!");
+      hasError = true;
+      e.preventDefault();
     }
+    
+    if (hasError) e.preventDefault();
+  });
+}
   });

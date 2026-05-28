@@ -737,8 +737,8 @@ def create_order():
         # Проверка минимального количества
         min_qty = price_data['min_qty']
         if min_qty > 0 and qty < min_qty:
-            flash(f'Для формата {fmt} минимальное количество - {min_qty} шт', 'danger')
-            return redirect(url_for('index'))
+            # Добавляем предупреждение, но не блокируем заказ
+            flash(f'Внимание: Для формата {fmt} рекомендуемое минимальное количество - {min_qty} шт', 'warning')
         
         subtotal = price * qty
         total += subtotal
@@ -758,7 +758,9 @@ def create_order():
         total *= 0.95  # 5% скидка
     
     order.total_amount = total
-    
+    if total < 10:
+        flash('Минимальная сумма заказа - 10 BYN', 'danger')
+        return redirect(url_for('index'))
     db.session.add(order)
     db.session.commit()
     
