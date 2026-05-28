@@ -181,27 +181,48 @@
                     
                     <!-- Фотографии -->
                     <h5 class="mb-3" style="color: var(--pink);">
-                        <i class="bi bi-images"></i> Фотографии ({{ order.photos|length }} шт)
-                    </h5>
-                    <div class="mb-4">
-                        {% if order.photos %}
-                            <div class="row g-2 mb-3">
-                                {% for photo in order.photos[:8] %}
-                                <div class="col-3 col-md-2">
-                                    <div class="border rounded p-2 text-center">
-                                        <i class="bi bi-file-image" style="font-size: 2rem; color: var(--pink);"></i>
-                                        <small class="d-block text-truncate">{{ photo.original_filename }}</small>
-                                    </div>
+                    <i class="bi bi-images"></i> Фотографии ({{ order.photos|length }} шт)
+                    {% if order.photos %}
+                    <button type="button" class="btn btn-sm btn-danger ms-2" 
+                            onclick="if(confirm('Удалить ВСЕ фото из этого заказа? Отменить будет нельзя!')) 
+                                    document.getElementById('deleteAllPhotosForm').submit();">
+                        <i class="bi bi-trash3"></i> Удалить все
+                    </button>
+                    <form id="deleteAllPhotosForm" action="{{ url_for('admin_delete_all_photos', order_id=order.id) }}" method="POST" style="display: none;"></form>
+                    {% endif %}
+                </h5>
+                <div class="mb-4">
+                    {% if order.photos %}
+                        <div class="row g-2 mb-3">
+                            {% for photo in order.photos %}
+                            <div class="col-3 col-md-2" id="photo-{{ photo.id }}">
+                                <div class="border rounded p-2 text-center position-relative">
+                                    <i class="bi bi-file-image" style="font-size: 2rem; color: var(--pink);"></i>
+                                    <small class="d-block text-truncate">{{ photo.original_filename }}</small>
+                                    <small class="d-block text-muted" style="font-size: 10px;">
+                                        {% if photo.file_size %}
+                                            {{ (photo.file_size / 1024)|round(1) }} KB
+                                        {% endif %}
+                                    </small>
+                                    <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1" 
+                                            style="font-size: 10px; padding: 2px 5px;"
+                                            onclick="if(confirm('Удалить фото {{ photo.original_filename }}?')) 
+                                                    deletePhoto('{{ url_for('admin_delete_photo', order_id=order.id, photo_id=photo.id) }}', {{ photo.id }})">
+                                        <i class="bi bi-x-lg"></i>
+                                    </button>
                                 </div>
-                                {% endfor %}
                             </div>
+                            {% endfor %}
+                        </div>
+                        <div class="d-flex gap-2">
                             <a href="{{ url_for('download_order_photos', order_id=order.id) }}" class="btn" style="background-color: var(--cream);">
                                 <i class="bi bi-download"></i> Скачать все фото (ZIP)
                             </a>
-                        {% else %}
-                            <p class="text-muted">Нет загруженных фотографий</p>
-                        {% endif %}
-                    </div>
+                        </div>
+                    {% else %}
+                        <p class="text-muted">Нет загруженных фотографий</p>
+                    {% endif %}
+                </div>
                     
                     <hr>
                     

@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Статистика хранилища{% endblock %}
+
+{% block content %}
+<section class="py-5 section-cream">
+    <div class="container">
+        <h2 class="section-title text-center">Статистика хранилища</h2>
+        
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h3>{{ stats.total_photos }}</h3>
+                        <p>Фото в заказах</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h3>{{ stats.total_temp }}</h3>
+                        <p>Временных файлов</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h3>{{ stats.total_size_mb }} MB</h3>
+                        <p>Общий размер</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <form action="{{ url_for('admin_cleanup_temp_files') }}" method="POST" 
+                              onsubmit="return confirm('Очистить все временные и осиротевшие файлы?')">
+                            <button type="submit" class="btn btn-danger">
+                                <i class="bi bi-trash"></i> Очистить
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Последние заказы с фото</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Заказ</th>
+                                <th>Кол-во фото</th>
+                                <th>Дата</th>
+                                <th>Действие</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in stats.photos_by_order %}
+                            <tr>
+                                <td>{{ order.order_number }}</td>
+                                <td>{{ order.photos_count }}</td>
+                                <td>{{ order.created_at.strftime('%d.%m.%Y') }}</td>
+                                <td>
+                                    <a href="{{ url_for('admin_order_detail', order_id=order.id) }}" class="btn btn-sm btn-info">
+                                        Перейти
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-3">
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">← Назад</a>
+        </div>
+    </div>
+</section>
+{% endblock %}

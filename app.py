@@ -1411,5 +1411,140 @@ def admin_login():
     return render_template('admin/admin_login.html')
 
 
+@app.route('/admin/order/<int:order_id>/delete_photo/<int:photo_id>', methods=['POST'])
+@login_required
+def admin_delete_photo(order_id, photo_id):
+    if not current_user.is_admin:
+        abort(403)
+    
+    order = Order.query.get_or_404(order_id)
+    photo = OrderPhoto.query.get_or_404(photo_id)
+    
+    # Проверяем, что фото принадлежит заказу
+    if photo.order_id != order.id:
+        abort(404)
+    
+    # Удаляем файл с диска
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], photo.saved_filename)
+    if os.path.exists(filepath):
+        os.remove(filepath)
+        logger.info(f"Deleted photo file: {filepath}")
+    
+    # Удаляем запись из БД
+    db.session.delete(photo)
+    db.session.commit()
+    
+    flash(f'Фото "{photo.original_filename}" удалено', 'success')
+    return redirect(url_for('admin_order_detail', order_id=order.id))
+
+
+# Удаление всех фото из заказа
+@app.route('/admin/order/<int:order_id>/delete_all_photos', methods=['POST'])
+@login_required
+def admin_delete_all_photos(order_id):
+    if not current_user.is_admin:
+        abort(403)
+    
+    order = Order.query.get_or_404(order_id)
+    deleted_count = 0
+    
+    for photo in order.photos:
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], photo.saved_filename)
+        if os.path.exists(filepath):
+            os.remove(filepath)
+        db.session.delete(photo)
+        deleted_count += 1
+    
+    db.session.commit()
+    flash(f'Удалено {deleted_count} фото из заказа #{order.order_number}', 'success')
+    return redirect(url_for('admin_order_detail', order_id=order.id))
+
+
+# Очистка всех временных файлов (старые и непривязанные к заказам)
+@app.route('/admin/cleanup_temp_files', methods=['POST'])
+@login_required
+def admin_cleanup_temp_files():
+    if not current_user.is_admin:
+        abort(403)
+    
+    deleted_count = 0
+    deleted_size = 0
+    
+    # 1. Удаляем временные файлы (TempUpload)
+    temp_uploads = TempUpload.query.all()
+    for temp in temp_uploads:
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], temp.saved_filename)
+        if os.path.exists(filepath):
+            file_size = os.path.getsize(filepath)
+            os.remove(filepath)
+            deleted_size += file_size
+            deleted_count += 1
+        db.session.delete(temp)
+    
+    # 2. Удаляем файлы, которые есть на диске, но нет в БД (осиротевшие)
+    upload_folder = app.config['UPLOAD_FOLDER']
+    if os.path.exists(upload_folder):
+        for filename in os.listdir(upload_folder):
+            if filename.startswith('temp_'):
+                filepath = os.path.join(upload_folder, filename)
+                # Проверяем, есть ли запись в БД
+                exists_in_db = TempUpload.query.filter_by(saved_filename=filename).first()
+                exists_in_order = OrderPhoto.query.filter_by(saved_filename=filename).first()
+                
+                if not exists_in_db and not exists_in_order:
+                    if os.path.exists(filepath):
+                        file_size = os.path.getsize(filepath)
+                        os.remove(filepath)
+                        deleted_size += file_size
+                        deleted_count += 1
+                        logger.info(f"Deleted orphaned file: {filename}")
+    
+    db.session.commit()
+    
+    # Форматируем размер
+    size_mb = deleted_size / (1024 * 1024)
+    flash(f'Очищено {deleted_count} файлов ({size_mb:.2f} МБ)', 'success')
+    return redirect(url_for('admin_dashboard'))
+
+
+# Показать статистику по файлам
+@app.route('/admin/storage_stats')
+@login_required
+def admin_storage_stats():
+    if not current_user.is_admin:
+        abort(403)
+    
+    stats = {
+        'total_photos': OrderPhoto.query.count(),
+        'total_temp': TempUpload.query.count(),
+        'total_orders': Order.query.count(),
+        'photos_by_order': []
+    }
+    
+    # Размер всех файлов
+    total_size = 0
+    upload_folder = app.config['UPLOAD_FOLDER']
+    
+    if os.path.exists(upload_folder):
+        for filename in os.listdir(upload_folder):
+            filepath = os.path.join(upload_folder, filename)
+            if os.path.isfile(filepath):
+                total_size += os.path.getsize(filepath)
+    
+    stats['total_size_mb'] = round(total_size / (1024 * 1024), 2)
+    
+    # Фото по заказам
+    orders = Order.query.order_by(Order.created_at.desc()).limit(20).all()
+    for order in orders:
+        stats['photos_by_order'].append({
+            'id': order.id,
+            'order_number': order.order_number,
+            'photos_count': len(order.photos),
+            'created_at': order.created_at
+        })
+    
+    return render_template('admin/storage_stats.html', stats=stats)
+
+
 if __name__ == '__main__':
     app.run(debug=True)
