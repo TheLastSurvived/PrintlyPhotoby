@@ -74,6 +74,10 @@ with app.app_context():
         'important_info': '✅ Минимальный заказ: 10 рублей\n✅ Бумага: только глянцевая 230 г/м²\n✅ Скидка: от 200 штук -5% на все форматы',
         'privacy_policy': '''<h6>1. Общие положения</h6>
 <p>Настоящая политика обработки персональных данных составлена в соответствии с требованиями Закона Республики Беларусь от 7 мая 2021 г. № 99-З «О защите персональных данных»...</p>''',
+'hero_title': 'Печать фотографий <br>с душой и вниманием к деталям',
+    'hero_subtitle': 'Только печать на заказ. Отправка Белпочтой и Европочтой',
+    'hero_button_text': 'Оформить заказ',
+    'hero_background_image': '/static/image/fon.jpg'
     }
     
     for key, value in default_content.items():
@@ -96,12 +100,25 @@ def index():
         
         important_info_obj = SiteContent.query.filter_by(key='important_info').first()
         privacy_policy_obj = SiteContent.query.filter_by(key='privacy_policy').first()
+
+        hero_title_obj = SiteContent.query.filter_by(key='hero_title').first()
+        hero_subtitle_obj = SiteContent.query.filter_by(key='hero_subtitle').first()
+        hero_button_text_obj = SiteContent.query.filter_by(key='hero_button_text').first()
+
+        hero_background_image_obj = SiteContent.query.filter_by(key='hero_background_image').first()
+        hero_background_image = hero_background_image_obj.value if hero_background_image_obj else '/static/image/fon.jpg'
         
         prices = Price.query.filter_by(is_active=True).order_by(Price.sort_order).all()
         format_examples = FormatExample.query.filter_by(is_active=True).order_by(FormatExample.sort_order).all()
         
         important_info = important_info_obj.value if important_info_obj else ''
         privacy_policy = privacy_policy_obj.value if privacy_policy_obj else ''
+
+        hero_title = hero_title_obj.value if hero_title_obj else 'Печать фотографий <br>с душой и вниманием к деталям'
+        hero_subtitle = hero_subtitle_obj.value if hero_subtitle_obj else 'Только печать на заказ. Отправка Белпочтой и Европочтой'
+        hero_button_text = hero_button_text_obj.value if hero_button_text_obj else 'Оформить заказ'
+
+        
         
         return render_template('index.html', 
                              reviews=reviews, 
@@ -110,7 +127,11 @@ def index():
                              privacy_policy=privacy_policy,
                              prices=prices,
                              contacts=contacts,
-                             format_examples=format_examples)
+                             format_examples=format_examples,
+                             hero_title=hero_title,
+                             hero_subtitle=hero_subtitle,
+                             hero_button_text=hero_button_text,
+                             hero_background_image=hero_background_image)
     except Exception as e:
         print(f"Error in index route: {e}")
         return render_template('index.html', 
@@ -120,7 +141,10 @@ def index():
                              privacy_policy='',
                              prices=[],
                              contacts=[],
-                             format_examples=[])
+                             format_examples=[],
+                             hero_title=hero_title,
+                             hero_subtitle=hero_subtitle,
+                             hero_button_text=hero_button_text)
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():

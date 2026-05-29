@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Редактирование Hero-блока{% endblock %}
+
+{% block content %}
+<section class="py-5 section-cream">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card form-card p-4">
+                    <h2 class="text-center mb-4" style="color: var(--pink);">Редактирование Hero-блока</h2>
+                    
+                    <form method="POST" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label class="form-label">Заголовок (можно использовать &lt;br&gt;)</label>
+                            <textarea class="form-control" name="hero_title" rows="3" required>{{ hero_title }}</textarea>
+                            <small class="text-muted">Используйте &lt;br&gt; для переноса строки</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Подзаголовок</label>
+                            <input type="text" class="form-control" name="hero_subtitle" value="{{ hero_subtitle }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Текст на кнопке</label>
+                            <input type="text" class="form-control" name="hero_button_text" value="{{ hero_button_text }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Фоновое изображение</label>
+                            <div class="current-image mb-2">
+                                <img src="{{ hero_background_image }}" alt="Current background" style="max-height: 100px; max-width: 100%; border-radius: 5px;">
+                                <p class="small text-muted mt-1">Текущее изображение</p>
+                            </div>
+                            <input type="file" class="form-control" name="hero_image" accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml">
+                            <small class="text-muted">Загрузите новое изображение (JPG, PNG, GIF, WEBP, SVG)</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="reset_image" id="resetImage">
+                                <label class="form-check-label" for="resetImage">
+                                    Сбросить на стандартное изображение
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn" style="background-color: var(--pink); color: white;">Сохранить</button>
+                            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">Назад</a>
+                        </div>
+                    </form>
+                    
+                    <hr class="mt-4">
+                    
+                    <h5 class="mb-3">Предпросмотр:</h5>
+                    <div class="p-4 rounded text-center" style="background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('{{ hero_background_image }}'); background-size: cover; background-position: center; min-height: 200px; color: white;">
+                        <h3>{{ hero_title|safe }}</h3>
+                        <p>{{ hero_subtitle }}</p>
+                        <button class="btn" style="background-color: var(--pink); color: white;">{{ hero_button_text }}</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

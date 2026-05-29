@@ -1,5 +1,5 @@
 from config import app, db, logger
-from models import User, Order, OrderPhoto, Review, Lottery, SiteContent, Price, FormatExample, TempUpload
+from models import User, Order, OrderPhoto, Review, Lottery, SiteContent, Price, FormatExample, TempUpload, SiteContent
 from utils import create_zip_from_photos
 from datetime import datetime
 import uuid
@@ -24,13 +24,21 @@ def admin_dashboard():
     important_info = SiteContent.query.filter_by(key='important_info').first()
     privacy_policy = SiteContent.query.filter_by(key='privacy_policy').first()
     
+    # Получаем hero-контент
+    hero_title = SiteContent.query.filter_by(key='hero_title').first()
+    hero_subtitle = SiteContent.query.filter_by(key='hero_subtitle').first()
+    hero_button_text = SiteContent.query.filter_by(key='hero_button_text').first()
+    
     return render_template('admin/dashboard.html',
                          total_orders=total_orders,
                          pending_orders=pending_orders,
                          total_users=total_users,
                          recent_orders=recent_orders,
                          important_info=important_info.value if important_info else '',
-                         privacy_policy=privacy_policy.value if privacy_policy else '')
+                         privacy_policy=privacy_policy.value if privacy_policy else '',
+                         hero_title=hero_title.value if hero_title else 'Печать фотографий <br>с душой и вниманием к деталям',
+                         hero_subtitle=hero_subtitle.value if hero_subtitle else 'Только печать на заказ. Отправка Белпочтой и Европочтой',
+                         hero_button_text=hero_button_text.value if hero_button_text else 'Оформить заказ')
 
 @app.route('/admin/orders')
 @login_required
@@ -39,13 +47,28 @@ def admin_orders():
         abort(403)
     
     status = request.args.get('status', 'all')
+    search = request.args.get('search', '').strip()
     
-    if status == 'all':
-        orders = Order.query.order_by(Order.created_at.desc()).all()
-    else:
-        orders = Order.query.filter_by(status=status).order_by(Order.created_at.desc()).all()
+    # Базовый запрос
+    query = Order.query
     
-    return render_template('admin/orders.html', orders=orders, current_status=status)
+    # Фильтр по статусу
+    if status != 'all':
+        query = query.filter_by(status=status)
+    
+    # Фильтр по поиску (ФИО, номер телефона, номер заказа)
+    if search:
+        query = query.filter(
+            db.or_(
+                Order.recipient_name.ilike(f'%{search}%'),
+                Order.phone.ilike(f'%{search}%'),
+                Order.order_number.ilike(f'%{search}%')
+            )
+        )
+    
+    orders = query.order_by(Order.created_at.desc()).all()
+    
+    return render_template('admin/orders.html', orders=orders, current_status=status, search=search)
 
 @app.route('/admin/order/<int:order_id>', methods=['GET', 'POST'])
 @login_required
@@ -502,3 +525,89 @@ def admin_storage_stats():
         })
     
     return render_template('admin/storage_stats.html', stats=stats)
+
+
+from werkzeug.utils import secure_filename
+import uuid
+import os
+
+@app.route('/admin/hero_content', methods=['GET', 'POST'])
+@login_required
+def admin_hero_content():
+    if not current_user.is_admin:
+        abort(403)
+    
+    hero_title = SiteContent.query.filter_by(key='hero_title').first()
+    hero_subtitle = SiteContent.query.filter_by(key='hero_subtitle').first()
+    hero_button_text = SiteContent.query.filter_by(key='hero_button_text').first()
+    hero_background_image = SiteContent.query.filter_by(key='hero_background_image').first()
+    
+    if request.method == 'POST':
+        # Обновляем текстовые поля
+        for key, value in [
+            ('hero_title', request.form.get('hero_title')),
+            ('hero_subtitle', request.form.get('hero_subtitle')),
+            ('hero_button_text', request.form.get('hero_button_text'))
+        ]:
+            content = SiteContent.query.filter_by(key=key).first()
+            if content:
+                content.value = value
+            else:
+                content = SiteContent(key=key, value=value)
+                db.session.add(content)
+        
+        # Обработка загрузки изображения
+        if 'hero_image' in request.files:
+            file = request.files['hero_image']
+            if file and file.filename:
+                allowed_extensions = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'}
+                ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+                
+                if ext in allowed_extensions:
+                    # Удаляем старое изображение (если не стандартное)
+                    if hero_background_image and hero_background_image.value:
+                        old_path = hero_background_image.value.replace('/static/', 'static/')
+                        if os.path.exists(old_path) and 'fon.jpg' not in old_path:
+                            os.remove(old_path)
+                    
+                    # Сохраняем новое изображение
+                    unique_id = uuid.uuid4().hex[:8]
+                    filename = secure_filename(f"hero_bg_{unique_id}.{ext}")
+                    filepath = os.path.join('static', 'image', filename)
+                    
+                    # Создаем папку если нет
+                    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+                    
+                    file.save(filepath)
+                    new_image_url = f'/static/image/{filename}'
+                    
+                    if hero_background_image:
+                        hero_background_image.value = new_image_url
+                    else:
+                        hero_background_image = SiteContent(key='hero_background_image', value=new_image_url)
+                        db.session.add(hero_background_image)
+        
+        # Сброс на стандартное изображение
+        if request.form.get('reset_image') == 'on':
+            default_image = '/static/image/fon.jpg'
+            if hero_background_image:
+                hero_background_image.value = default_image
+            else:
+                hero_background_image = SiteContent(key='hero_background_image', value=default_image)
+                db.session.add(hero_background_image)
+            
+            # Удаляем загруженное изображение если есть
+            if hero_background_image and hero_background_image.value != default_image:
+                old_path = hero_background_image.value.replace('/static/', 'static/')
+                if os.path.exists(old_path) and 'fon.jpg' not in old_path:
+                    os.remove(old_path)
+        
+        db.session.commit()
+        flash('Hero-блок обновлен', 'success')
+        return redirect(url_for('admin_hero_content'))
+    
+    return render_template('admin/hero_content.html',
+                         hero_title=hero_title.value if hero_title else '',
+                         hero_subtitle=hero_subtitle.value if hero_subtitle else '',
+                         hero_button_text=hero_button_text.value if hero_button_text else '',
+                         hero_background_image=hero_background_image.value if hero_background_image else '/static/image/fon.jpg')
