@@ -105,7 +105,7 @@ document.addEventListener("DOMContentLoaded", function () {
           const needMore = 200 - totalPhotos;
           discountInfo.style.display = "block";
           discountInfo.style.color = "#fd7e14";
-          discountInfo.innerHTML = `💰 Добавьте еще ${needMore} фото для скидки 5% (экономия ${(originalTotal * 0.05).toFixed(2)} BYN)`;
+          discountInfo.innerHTML = `💰 Добавьте еще ${needMore} фото для скидки 5%`;
         } else {
           discountInfo.style.display = "none";
         }

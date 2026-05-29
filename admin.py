@@ -1,5 +1,5 @@
 from config import app, db, logger
-from models import User, Order, OrderPhoto, Review, Lottery, SiteContent, Price, FormatExample, TempUpload, SiteContent
+from models import User, Order, OrderPhoto, Review, Lottery, SiteContent, Price, FormatExample, TempUpload, SiteContent, Video
 from utils import create_zip_from_photos
 from datetime import datetime
 import uuid
@@ -7,6 +7,7 @@ import os
 from flask import render_template, request, redirect, url_for, flash, jsonify, send_file, abort
 from flask_login import login_required, current_user, login_user
 from werkzeug.utils import secure_filename
+import json
 
 # ========== АДМИНСКИЕ МАРШРУТЫ ==========
 
@@ -630,3 +631,106 @@ def admin_hero_content():
                          hero_subtitle=hero_subtitle.value if hero_subtitle else '',
                          hero_button_text=hero_button_text.value if hero_button_text else '',
                          hero_background_image=hero_background_image.value if hero_background_image else '/static/image/fon.jpg')
+
+
+def allowed_video_file(filename):
+    allowed = app.config['ALLOWED_VIDEO_EXTENSIONS']
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed
+
+@app.route('/admin/videos')
+@login_required
+def admin_videos():
+    if not current_user.is_admin:
+        abort(403)
+    
+    videos = Video.query.order_by(Video.sort_order).all()
+    return render_template('admin/videos.html', videos=videos)
+
+@app.route('/admin/video/create', methods=['POST'])
+@login_required
+def admin_video_create():
+    if not current_user.is_admin:
+        abort(403)
+    
+    title = request.form.get('title')
+    description = request.form.get('description')
+    sort_order = int(request.form.get('sort_order', 99))
+    
+    video = Video(
+        title=title,
+        description=description,
+        sort_order=sort_order,
+        filename='',
+        is_active=True
+    )
+    db.session.add(video)
+    db.session.commit()
+    
+    # Обработка загрузки видео
+    if 'video_file' in request.files:
+        file = request.files['video_file']
+        if file and file.filename:
+            ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+            if ext in app.config['ALLOWED_VIDEO_EXTENSIONS']:
+                unique_id = uuid.uuid4().hex[:8]
+                filename = secure_filename(f"{video.id}_{unique_id}.{ext}")
+                filepath = os.path.join(app.config['VIDEO_FOLDER'], filename)
+                file.save(filepath)
+                video.filename = filename
+                db.session.commit()
+    
+    flash('Видео добавлено', 'success')
+    return redirect(url_for('admin_videos'))
+
+@app.route('/admin/video/update/<int:video_id>', methods=['POST'])
+@login_required
+def admin_video_update(video_id):
+    if not current_user.is_admin:
+        abort(403)
+    
+    video = Video.query.get_or_404(video_id)
+    video.title = request.form.get('title')
+    video.description = request.form.get('description')
+    video.sort_order = int(request.form.get('sort_order', 99))
+    video.is_active = request.form.get('is_active') == 'on'
+    
+    if 'video_file' in request.files:
+        file = request.files['video_file']
+        if file and file.filename:
+            ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+            if ext in app.config['ALLOWED_VIDEO_EXTENSIONS']:
+                # Удаляем старое видео
+                if video.filename:
+                    old_path = os.path.join(app.config['VIDEO_FOLDER'], video.filename)
+                    if os.path.exists(old_path):
+                        os.remove(old_path)
+                
+                unique_id = uuid.uuid4().hex[:8]
+                filename = secure_filename(f"{video.id}_{unique_id}.{ext}")
+                filepath = os.path.join(app.config['VIDEO_FOLDER'], filename)
+                file.save(filepath)
+                video.filename = filename
+    
+    db.session.commit()
+    flash('Видео обновлено', 'success')
+    return redirect(url_for('admin_videos'))
+
+@app.route('/admin/video/delete/<int:video_id>')
+@login_required
+def admin_video_delete(video_id):
+    if not current_user.is_admin:
+        abort(403)
+    
+    video = Video.query.get_or_404(video_id)
+    
+    # Удаляем файл
+    if video.filename:
+        filepath = os.path.join(app.config['VIDEO_FOLDER'], video.filename)
+        if os.path.exists(filepath):
+            os.remove(filepath)
+    
+    db.session.delete(video)
+    db.session.commit()
+    
+    flash('Видео удалено', 'success')
+    return redirect(url_for('admin_videos'))

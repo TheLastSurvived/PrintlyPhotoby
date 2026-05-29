@@ -1,5 +1,5 @@
 from config import app, db, login_manager, logger
-from models import User, Order, OrderItem, OrderPhoto, Review, Lottery, LotteryParticipant, SiteContent, TempUpload, Price, FormatExample, Contact
+from models import User, Order, OrderItem, OrderPhoto, Review, Lottery, LotteryParticipant, SiteContent, TempUpload, Price, FormatExample, Contact, Video
 from utils import convert_to_jpg, convert_to_jpg_bytes, get_privacy_policy 
 from datetime import datetime, timedelta
 import json
@@ -130,8 +130,8 @@ def index():
         hero_title = hero_title_obj.value if hero_title_obj else 'Печать фотографий <br>с душой и вниманием к деталям'
         hero_subtitle = hero_subtitle_obj.value if hero_subtitle_obj else 'Только печать на заказ. Отправка Белпочтой и Европочтой'
         hero_button_text = hero_button_text_obj.value if hero_button_text_obj else 'Оформить заказ'
-
-        
+        videos = Video.query.filter_by(is_active=True).order_by(Video.sort_order).all()
+ 
         
         return render_template('index.html', 
                              reviews=reviews, 
@@ -143,7 +143,9 @@ def index():
                              hero_title=hero_title,
                              hero_subtitle=hero_subtitle,
                              hero_button_text=hero_button_text,
-                             hero_background_image=hero_background_image)
+                             hero_background_image=hero_background_image,
+                              videos=videos
+                            )
     except Exception as e:
         print(f"Error in index route: {e}")
         return render_template('index.html', 
@@ -155,7 +157,10 @@ def index():
                              format_examples=[],
                              hero_title=hero_title,
                              hero_subtitle=hero_subtitle,
-                             hero_button_text=hero_button_text)
+                             hero_button_text=hero_button_text,
+                             hero_background_image=hero_background_image,
+                              videos=videos
+                             )
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():

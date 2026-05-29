@@ -49,3 +49,9 @@ db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 login_manager.login_message = 'Пожалуйста, войдите для доступа к этой странице'
+
+
+app.config['VIDEO_FOLDER'] = 'static/uploads/videos'
+os.makedirs(app.config['VIDEO_FOLDER'], exist_ok=True)
+
+app.config['ALLOWED_VIDEO_EXTENSIONS'] = {'mp4', 'webm', 'mov', 'avi'}

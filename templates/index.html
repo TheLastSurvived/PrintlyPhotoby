@@ -16,6 +16,34 @@
   </div>
 </section>
 
+<!-- Видео-блок -->
+{% set active_videos = videos|selectattr('is_active')|list %}
+{% if active_videos %}
+<section id="videos" class="py-5 section-cream">
+    <div class="container">
+        <h2 class="section-title text-center mb-4">Наши видео</h2>
+        <div class="row">
+            {% for video in active_videos|sort(attribute='sort_order') %}
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100 shadow-sm">
+                    <video class="card-img-top" controls style="border-radius: 10px 10px 0 0;">
+                        <source src="{{ url_for('static', filename='uploads/videos/' + video.filename) }}" type="video/mp4">
+                        Ваш браузер не поддерживает просмотр видео.
+                    </video>
+                    <div class="card-body">
+                        <h5 class="card-title">{{ video.title }}</h5>
+                        {% if video.description %}
+                            <p class="card-text small text-muted">{{ video.description }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
 <!-- Услуги -->
 <section id="services" class="py-5 section-white">
   <div class="container">

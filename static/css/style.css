@@ -77,11 +77,6 @@ footer {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(
-    45deg,
-    rgba(245, 231, 156, 0.7),
-    rgba(251, 155, 183, 0.7)
-  );
   z-index: 1;
 }
 
@@ -94,37 +89,37 @@ footer {
 /* Текст на фоне */
 .hero-title {
   color: white;
-  text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.3);
   font-size: 3.5rem;
   font-weight: 800;
 }
 
 .hero-section .lead {
-  color: white !important;
-  text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.3);
+  color: white;
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.9);
   font-size: 1.3rem;
 }
 
 /* Кнопка на фоне */
 .hero-btn {
-  background: white;
+  background: rgba(255, 255, 255, 0.95);
   color: var(--pink);
   border: none;
   padding: 14px 40px;
   font-weight: 600;
+  font-size: 1.1rem;
   border-radius: 50px;
-  transition:
-    transform 0.2s,
-    box-shadow 0.2s;
+  transition: all 0.3s ease;
   text-decoration: none;
   display: inline-block;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
 .hero-btn:hover {
   background: white;
   color: var(--pink-dark);
-  transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
 }
 
 /* Секции */

@@ -137,3 +137,13 @@ class Contact(db.Model):
     icon = db.Column(db.String(200), nullable=False)
     value = db.Column(db.String(200), nullable=False)
     sort_order = db.Column(db.Integer, default=0)
+
+
+class Video(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    filename = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.String(500))
+    sort_order = db.Column(db.Integer, default=0)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.now)
