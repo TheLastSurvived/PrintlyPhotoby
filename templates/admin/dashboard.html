@@ -191,10 +191,48 @@
                 
                 <hr>
                 
-                <form action="{{ url_for('update_site_content', key='privacy_policy') }}" method="POST">
-                    <h6 class="mb-2">Политика конфиденциальности</h6>
-                    <textarea class="form-control mb-2" name="value" rows="5">{{ privacy_policy }}</textarea>
-                    <button type="submit" class="btn" style="background-color: var(--pink); color: white;">Сохранить</button>
+                <form action="{{ url_for('update_site_content', key='privacy_policy') }}" method="POST" class="mb-4">
+    <h6 class="mb-2">Политика конфиденциальности</h6>
+    
+    <div class="alert alert-info small p-2 mb-2">
+        <i class="bi bi-info-circle-fill"></i>
+        <strong>Как это работает:</strong><br>
+        • По умолчанию политика берётся из файла <code>templates/privacy_policy_default.html</code><br>
+        • Вы можете отредактировать текст ниже и сохранить — он заменит стандартный текст в базе данных<br>
+        • Если очистить поле и сохранить — вернётся стандартный текст из файла<br>
+        • Редактирование работает на всех страницах сайта
+    </div>
+    
+    <textarea class="form-control mb-2" name="value" rows="10">{{ privacy_policy }}</textarea>
+    
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn" style="background-color: var(--pink); color: white;">
+            <i class="bi bi-save"></i> Сохранить в БД
+        </button>
+        <button type="button" class="btn btn-outline-secondary" 
+                onclick="if(confirm('Очистить поле и вернуть стандартную политику из файла?')) 
+                         document.getElementById('clearPrivacyPolicy').value = 'true';
+                         this.form.submit();">
+            <i class="bi bi-arrow-repeat"></i> Вернуть стандартную
+        </button>
+    </div>
+    <input type="hidden" name="clear_to_default" id="clearPrivacyPolicy" value="">
+</form>
+                
+                <hr>
+                
+                <h6 class="mb-3" style="color: var(--pink);">Информация в подвале (футер)</h6>
+                
+                <form action="{{ url_for('update_site_content', key='footer_unp') }}" method="POST" class="mb-3">
+                    <label class="form-label small fw-bold">УНП (реквизиты)</label>
+                    <input type="text" class="form-control mb-2" name="value" value="{{ footer_unp }}">
+                    <button type="submit" class="btn btn-sm" style="background-color: var(--pink); color: white;">Сохранить УНП</button>
+                </form>
+                
+                <form action="{{ url_for('update_site_content', key='footer_schedule') }}" method="POST">
+                    <label class="form-label small fw-bold">График работы (можно использовать &lt;br&gt;)</label>
+                    <textarea class="form-control mb-2" name="value" rows="3">{{ footer_schedule }}</textarea>
+                    <button type="submit" class="btn btn-sm" style="background-color: var(--pink); color: white;">Сохранить график</button>
                 </form>
             </div>
         </div>

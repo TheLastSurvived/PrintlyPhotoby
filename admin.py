@@ -23,11 +23,8 @@ def admin_dashboard():
     
     important_info = SiteContent.query.filter_by(key='important_info').first()
     privacy_policy = SiteContent.query.filter_by(key='privacy_policy').first()
-    
-    # Получаем hero-контент
-    hero_title = SiteContent.query.filter_by(key='hero_title').first()
-    hero_subtitle = SiteContent.query.filter_by(key='hero_subtitle').first()
-    hero_button_text = SiteContent.query.filter_by(key='hero_button_text').first()
+    footer_unp = SiteContent.query.filter_by(key='footer_unp').first()
+    footer_schedule = SiteContent.query.filter_by(key='footer_schedule').first()
     
     return render_template('admin/dashboard.html',
                          total_orders=total_orders,
@@ -36,9 +33,8 @@ def admin_dashboard():
                          recent_orders=recent_orders,
                          important_info=important_info.value if important_info else '',
                          privacy_policy=privacy_policy.value if privacy_policy else '',
-                         hero_title=hero_title.value if hero_title else 'Печать фотографий <br>с душой и вниманием к деталям',
-                         hero_subtitle=hero_subtitle.value if hero_subtitle else 'Только печать на заказ. Отправка Белпочтой и Европочтой',
-                         hero_button_text=hero_button_text.value if hero_button_text else 'Оформить заказ')
+                         footer_unp=footer_unp.value if footer_unp else 'УНП 123456789',
+                         footer_schedule=footer_schedule.value if footer_schedule else 'Пн-Пт: 9:00 - 18:00<br>Сб-Вс: выходной')
 
 @app.route('/admin/orders')
 @login_required
@@ -194,11 +190,34 @@ def update_site_content(key):
     if not current_user.is_admin:
         abort(403)
     
-    content = SiteContent.query.filter_by(key=key).first_or_404()
-    content.value = request.form.get('value')
+    value = request.form.get('value', '').strip()
+    
+    # Если ключ privacy_policy и значение пустое - удаляем запись из БД
+    if key == 'privacy_policy' and not value:
+        content = SiteContent.query.filter_by(key=key).first()
+        if content:
+            db.session.delete(content)
+            db.session.commit()
+            flash('Политика конфиденциальности сброшена до стандартной (из файла)', 'success')
+        else:
+            flash('Политика конфиденциальности уже стандартная', 'info')
+        return redirect(request.referrer or url_for('admin_dashboard'))
+    
+    # Обычное сохранение
+    content = SiteContent.query.filter_by(key=key).first()
+    if content:
+        content.value = value
+    else:
+        content = SiteContent(key=key, value=value)
+        db.session.add(content)
+    
     db.session.commit()
     
-    flash('Контент обновлен', 'success')
+    if key == 'privacy_policy':
+        flash('Политика конфиденциальности сохранена в базе данных. Чтобы вернуть стандартную - очистите поле и сохраните.', 'success')
+    else:
+        flash('Контент обновлен', 'success')
+    
     return redirect(request.referrer or url_for('admin_dashboard'))
 
 @app.route('/admin/prices')

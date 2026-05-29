@@ -999,37 +999,6 @@
   </div>
 </div>
 
-<div class="modal fade" id="privacyModal" tabindex="-1">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Политика конфиденциальности</h5>
-        <button
-          type="button"
-          class="btn-close"
-          data-bs-dismiss="modal"
-        ></button>
-      </div>
-      <div class="modal-body">
-        <div class="p-3">
-          {% if privacy_policy %} {{ privacy_policy|safe }} {% else %}
-          <h6>1. Общие положения</h6>
-          <p>
-            Настоящая политика обработки персональных данных составлена в
-            соответствии с требованиями Закона Республики Беларусь от 7 мая 2021
-            г. № 99-З «О защите персональных данных»...
-          </p>
-          {% endif %}
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-          Закрыть
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
 {% endblock %} 
 
 {% block scripts %}

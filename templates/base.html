@@ -87,15 +87,39 @@
     {% block content %}{% endblock %}
 </main>
 
-    <!-- Футер -->
-    <footer class="py-4">
-        <div class="container text-center">
-            <p class="mb-1">© 2026 PrintlyPhotoby. Печать фотографий на заказ</p>
-            <p class="mb-0 small">
-                <a href="#" class="text-white" data-bs-toggle="modal" data-bs-target="#privacyModal">Политика конфиденциальности</a>
-            </p>
+   <footer class="py-4" style="background-color: #2c2c2c; color: #fff;">
+    <div class="container">
+        <div class="row">
+            <div class="col-12 text-center mb-3">
+                <h6 class="mb-2" style="color: var(--pink);">PrintlyPhotoby</h6>
+                <p class="small mb-0">Печать фотографий на заказ с доставкой по всей Беларуси</p>
+            </div>
         </div>
-    </footer>
+        
+        <div class="row text-center">
+            <div class="col-md-4 mb-2 mb-md-0">
+                <i class="bi bi-clock" style="color: var(--pink);"></i>
+                <p class="small mb-0 mt-1">{{ footer_schedule|safe }}</p>
+            </div>
+            <div class="col-md-4 mb-2 mb-md-0">
+                <i class="bi bi-building" style="color: var(--pink);"></i>
+                <p class="small mb-0 mt-1">{{ footer_unp }}</p>
+            </div>
+            <div class="col-md-4">
+                <i class="bi bi-envelope" style="color: var(--pink);"></i>
+                <p class="small mb-0 mt-1">
+                    <a href="#" class="text-white-50 " data-bs-toggle="modal" data-bs-target="#privacyModal">Политика конфиденциальности</a>
+                </p>
+            </div>
+        </div>
+        
+        <hr class="mt-3 mb-3" style="border-color: rgba(255,255,255,0.1);">
+        
+        <div class="text-center">
+            <p class="mb-0 small">© 2026 PrintlyPhotoby. Все права защищены.</p>
+        </div>
+    </div>
+</footer>
 
     <!-- Модальное окно политики конфиденциальности -->
     <div class="modal fade" id="privacyModal" tabindex="-1">

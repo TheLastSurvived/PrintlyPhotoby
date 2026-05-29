@@ -4,7 +4,7 @@ from io import BytesIO
 from PIL import Image
 import pillow_heif
 from config import app, logger
-from models import Order, Price, OrderPhoto
+from models import Order, Price, OrderPhoto, SiteContent
 from werkzeug.utils import secure_filename
 
 def allowed_file(filename):
@@ -214,3 +214,18 @@ def create_zip_from_photos(order_id):
     
     zip_buffer.seek(0)
     return zip_buffer
+
+
+def get_privacy_policy():
+    """Получает политику конфиденциальности из БД, если пусто - из файла"""
+    privacy_policy_obj = SiteContent.query.filter_by(key='privacy_policy').first()
+    if privacy_policy_obj and privacy_policy_obj.value:
+        return privacy_policy_obj.value
+    
+    # Резервный вариант - читаем из файла
+    policy_file = os.path.join(app.root_path, 'templates', 'privacy_policy_default.html')
+    try:
+        with open(policy_file, 'r', encoding='utf-8') as f:
+            return f.read()
+    except:
+        return "<p>Политика конфиденциальности временно недоступна.</p>"

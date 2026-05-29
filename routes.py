@@ -1,6 +1,6 @@
 from config import app, db, login_manager, logger
 from models import User, Order, OrderItem, OrderPhoto, Review, Lottery, LotteryParticipant, SiteContent, TempUpload, Price, FormatExample, Contact
-from utils import convert_to_jpg, convert_to_jpg_bytes
+from utils import convert_to_jpg, convert_to_jpg_bytes, get_privacy_policy 
 from datetime import datetime, timedelta
 import json
 import uuid
@@ -72,12 +72,12 @@ with app.app_context():
     
     default_content = {
         'important_info': '✅ Минимальный заказ: 10 рублей\n✅ Бумага: только глянцевая 230 г/м²\n✅ Скидка: от 200 штук -5% на все форматы',
-        'privacy_policy': '''<h6>1. Общие положения</h6>
-<p>Настоящая политика обработки персональных данных составлена в соответствии с требованиями Закона Республики Беларусь от 7 мая 2021 г. № 99-З «О защите персональных данных»...</p>''',
-'hero_title': 'Печать фотографий <br>с душой и вниманием к деталям',
-    'hero_subtitle': 'Только печать на заказ. Отправка Белпочтой и Европочтой',
-    'hero_button_text': 'Оформить заказ',
-    'hero_background_image': '/static/image/fon.jpg'
+        'hero_title': 'Печать фотографий <br>с душой и вниманием к деталям',
+        'hero_subtitle': 'Только печать на заказ. Отправка Белпочтой и Европочтой',
+        'hero_button_text': 'Оформить заказ',
+        'hero_background_image': '/static/image/fon.jpg',
+        'footer_unp': 'УНП 123456789',
+        'footer_schedule': 'Пн-Пт: 9:00 - 18:00<br>Сб-Вс: выходной',
     }
     
     for key, value in default_content.items():
@@ -86,6 +86,21 @@ with app.app_context():
             db.session.add(content)
     
     db.session.commit()
+
+
+@app.context_processor
+def inject_footer_data():
+    """Передает данные для футера во все шаблоны"""
+    from utils import get_privacy_policy
+    
+    footer_unp_obj = SiteContent.query.filter_by(key='footer_unp').first()
+    footer_schedule_obj = SiteContent.query.filter_by(key='footer_schedule').first()
+    
+    return {
+        'footer_unp': footer_unp_obj.value if footer_unp_obj else 'УНП 123456789',
+        'footer_schedule': footer_schedule_obj.value if footer_schedule_obj else 'Пн-Пт: 9:00 - 18:00<br>Сб-Вс: выходной',
+        'privacy_policy': get_privacy_policy()
+    }
 
 # ========== ПУБЛИЧНЫЕ МАРШРУТЫ ==========
 
@@ -99,7 +114,6 @@ def index():
         ).first()
         
         important_info_obj = SiteContent.query.filter_by(key='important_info').first()
-        privacy_policy_obj = SiteContent.query.filter_by(key='privacy_policy').first()
 
         hero_title_obj = SiteContent.query.filter_by(key='hero_title').first()
         hero_subtitle_obj = SiteContent.query.filter_by(key='hero_subtitle').first()
@@ -112,7 +126,6 @@ def index():
         format_examples = FormatExample.query.filter_by(is_active=True).order_by(FormatExample.sort_order).all()
         
         important_info = important_info_obj.value if important_info_obj else ''
-        privacy_policy = privacy_policy_obj.value if privacy_policy_obj else ''
 
         hero_title = hero_title_obj.value if hero_title_obj else 'Печать фотографий <br>с душой и вниманием к деталям'
         hero_subtitle = hero_subtitle_obj.value if hero_subtitle_obj else 'Только печать на заказ. Отправка Белпочтой и Европочтой'
@@ -124,7 +137,6 @@ def index():
                              reviews=reviews, 
                              active_lottery=active_lottery,
                              important_info=important_info,
-                             privacy_policy=privacy_policy,
                              prices=prices,
                              contacts=contacts,
                              format_examples=format_examples,
@@ -138,7 +150,6 @@ def index():
                              reviews=[], 
                              active_lottery=None,
                              important_info='',
-                             privacy_policy='',
                              prices=[],
                              contacts=[],
                              format_examples=[],
@@ -178,8 +189,7 @@ def register():
         flash('Регистрация успешна!', 'success')
         return redirect(url_for('index'))
     
-    privacy_policy = SiteContent.query.filter_by(key='privacy_policy').first()
-    return render_template('register.html', privacy_policy=privacy_policy.value if privacy_policy else '')
+    return render_template('register.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -549,3 +559,5 @@ def update_contacts():
     db.session.commit()
     flash('Контакты обновлены', 'success')
     return redirect(url_for('index'))
+
+
