@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /admin/login
+Disallow: /login/
+Disallow: /register/
+Disallow: /profile/
+Disallow: /logout/
+Disallow: /order/
+Disallow: /upload_photos/
+Disallow: /delete_upload/
+Disallow: /track_order/
+Sitemap: https://printly.by/sitemap.xml

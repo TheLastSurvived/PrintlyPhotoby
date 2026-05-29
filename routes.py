@@ -561,3 +561,32 @@ def update_contacts():
     return redirect(url_for('index'))
 
 
+@app.route('/sitemap.xml')
+def sitemap():
+    """Генерирует sitemap.xml для поисковых систем"""
+    from config import app
+    
+    # Базовый URL сайта (замени на свой домен)
+    base_url = 'https://printly.by'  # <-- ЗАМЕНИ НА СВОЙ ДОМЕН
+    
+    # Страницы для индексации
+    pages = [
+        {'loc': '/', 'priority': '1.0', 'changefreq': 'daily'},
+        {'loc': '/#services', 'priority': '0.8', 'changefreq': 'weekly'},
+        {'loc': '/#price', 'priority': '0.8', 'changefreq': 'weekly'},
+        {'loc': '/#order', 'priority': '0.7', 'changefreq': 'weekly'},
+        {'loc': '/#contacts', 'priority': '0.6', 'changefreq': 'monthly'},
+        {'loc': '/#reviews', 'priority': '0.6', 'changefreq': 'weekly'},
+    ]
+    
+    # Генерируем XML
+    sitemap_xml = render_template('sitemap.xml', pages=pages, base_url=base_url)
+    return app.response_class(sitemap_xml, mimetype='application/xml')
+
+
+@app.context_processor
+def utility_processor():
+    """Добавляет функции во все шаблоны"""
+    def now():
+        return datetime.now().strftime('%Y-%m-%d')
+    return dict(now=now)
